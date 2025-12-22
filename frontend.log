@@ -1,0 +1,13 @@
+nohup: ignoring input
+
+> @figma/my-make-file@0.0.1 dev
+> vite
+
+
+  VITE v6.3.5  ready in 468 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.100.26:5173/
+1:08:36 PM [vite] http proxy error: /api/login
+Error: connect ECONNREFUSED 0.0.0.0:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
