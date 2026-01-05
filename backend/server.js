@@ -46,11 +46,15 @@ const db = new sqlite3.Database(dbPath, (err) => {
         municipality_id TEXT,
         serialNumber TEXT NOT NULL,
         titleType TEXT NOT NULL,
+        subtype TEXT,
         beneficiaryName TEXT NOT NULL,
         lotNumber TEXT NOT NULL,
         area REAL DEFAULT 0,
-        status TEXT DEFAULT 'Pending',
+        status TEXT DEFAULT 'on-hand',
         dateIssued TEXT,
+        dateRegistered TEXT,
+        dateReceived TEXT,
+        dateDistributed TEXT,
         notes TEXT,
         FOREIGN KEY (municipality_id) REFERENCES municipalities (id)
       )`);
@@ -66,6 +70,36 @@ const db = new sqlite3.Database(dbPath, (err) => {
       // Add new columns if they don't exist - using a method compatible with older SQLite versions
       // First check if each column exists using PRAGMA table_info
       db.serialize(() => {
+        // Check for titles table new columns
+        db.all("PRAGMA table_info(titles)", [], (err, rows) => {
+           if (err) {
+             console.log("Error checking titles table structure:", err.message);
+             return;
+           }
+           const columnNames = rows.map(row => row.name);
+           
+           if (!columnNames.includes('subtype')) {
+             db.run("ALTER TABLE titles ADD COLUMN subtype TEXT", (err) => {
+               if (!err) console.log("Added subtype column to titles table");
+             });
+           }
+           if (!columnNames.includes('dateRegistered')) {
+             db.run("ALTER TABLE titles ADD COLUMN dateRegistered TEXT", (err) => {
+               if (!err) console.log("Added dateRegistered column to titles table");
+             });
+           }
+           if (!columnNames.includes('dateReceived')) {
+             db.run("ALTER TABLE titles ADD COLUMN dateReceived TEXT", (err) => {
+               if (!err) console.log("Added dateReceived column to titles table");
+             });
+           }
+           if (!columnNames.includes('dateDistributed')) {
+             db.run("ALTER TABLE titles ADD COLUMN dateDistributed TEXT", (err) => {
+               if (!err) console.log("Added dateDistributed column to titles table");
+             });
+           }
+        });
+
         // Check for fullName column
         db.all("PRAGMA table_info(users)", [], (err, rows) => {
           if (err) {
@@ -118,7 +152,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
           const hashedPassword = crypto.createHash('sha256').update(defaultPassword).digest('hex');
 
           db.run("INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [crypto.randomUUID(), 'admin', hashedPassword, 'admin', 'Administrator', 'admin@dar.gov.ph', 'Active'], (err) => {
+            [crypto.randomUUID(), 'admin', hashedPassword, 'Admin', 'Administrator', 'admin@dar.gov.ph', 'Active'], (err) => {
               if (err) {
                 console.error('Error creating default user:', err);
               } else {
@@ -257,14 +291,17 @@ app.get('/api/municipalities', (req, res) => {
         const muniTitles = titleStats.filter(title => title.municipality_id === muni.id);
 
         muniTitles.forEach(title => {
-          if (title.titleType === 'TCT-CLOA') {
+          // Map SPLIT and TCT-CLOA to the CLOA bucket
+          if (title.titleType === 'SPLIT' || title.titleType === 'TCT-CLOA') {
             muni.tctCloaTotal += title.count;
-            if (title.status === 'Released' || title.status === 'Processed') {
+            if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
               muni.tctCloaProcessed += title.count;
             }
-          } else if (title.titleType === 'TCT-EP') {
+          } 
+          // Map MOTHER_CLOA and TCT-EP to the EP bucket
+          else if (title.titleType === 'MOTHER_CLOA' || title.titleType === 'TCT-EP') {
             muni.tctEpTotal += title.count;
-            if (title.status === 'Released' || title.status === 'Processed') {
+            if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
               muni.tctEpProcessed += title.count;
             }
           }
@@ -340,14 +377,17 @@ app.get('/api/municipalities/:id', (req, res) => {
 
       // Calculate title counts
       titleStats.forEach(title => {
-        if (title.titleType === 'TCT-CLOA') {
+        // Map SPLIT and TCT-CLOA to the CLOA bucket
+        if (title.titleType === 'SPLIT' || title.titleType === 'TCT-CLOA') {
           muni.tctCloaTotal += title.count;
-          if (title.status === 'Released' || title.status === 'Processed') {
+          if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
             muni.tctCloaProcessed += title.count;
           }
-        } else if (title.titleType === 'TCT-EP') {
+        } 
+        // Map MOTHER_CLOA and TCT-EP to the EP bucket
+        else if (title.titleType === 'MOTHER_CLOA' || title.titleType === 'TCT-EP') {
           muni.tctEpTotal += title.count;
-          if (title.status === 'Released' || title.status === 'Processed') {
+          if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
             muni.tctEpProcessed += title.count;
           }
         }
@@ -488,12 +528,12 @@ app.get('/api/titles/:municipalityId/:titleId', (req, res) => {
 // Create title
 app.post('/api/titles/:municipalityId', (req, res) => {
   const { municipalityId } = req.params;
-  const { id, serialNumber, titleType, beneficiaryName, lotNumber, area, status, dateIssued, notes } = req.body;
+  const { id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes } = req.body;
   
-  const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, beneficiaryName, lotNumber, area, status, dateIssued, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   
-  db.run(sql, [id, municipalityId, serialNumber, titleType, beneficiaryName, lotNumber, area, status, dateIssued, notes], function(err) {
+  db.run(sql, [id, municipalityId, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -505,14 +545,14 @@ app.post('/api/titles/:municipalityId', (req, res) => {
 // Update title
 app.put('/api/titles/:municipalityId/:titleId', (req, res) => {
   const { municipalityId, titleId } = req.params;
-  const { serialNumber, titleType, beneficiaryName, lotNumber, area, status, dateIssued, notes } = req.body;
+  const { serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes } = req.body;
   
   const sql = `UPDATE titles 
-               SET serialNumber = ?, titleType = ?, beneficiaryName = ?, lotNumber = ?, 
-                   area = ?, status = ?, dateIssued = ?, notes = ?
+               SET serialNumber = ?, titleType = ?, subtype = ?, beneficiaryName = ?, lotNumber = ?, 
+                   area = ?, status = ?, dateIssued = ?, dateRegistered = ?, dateReceived = ?, dateDistributed = ?, notes = ?
                WHERE id = ? AND municipality_id = ?`;
   
-  db.run(sql, [serialNumber, titleType, beneficiaryName, lotNumber, area, status, dateIssued, notes, titleId, municipalityId], function(err) {
+  db.run(sql, [serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, titleId, municipalityId], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -657,26 +697,33 @@ app.post('/api/users', (req, res) => {
 // Update user
 app.put('/api/users/:id', (req, res) => {
   const { id } = req.params;
-  const { username, role, fullName, email, status } = req.body;
+  const { username, role, fullName, email, status, password } = req.body;
 
-  // Try to update with all fields first
-  const sql = `UPDATE users SET username = ?, role = ?, fullName = ?, email = ?, status = ? WHERE id = ?`;
+  let sql;
+  let params;
 
-  db.run(sql, [username, role, fullName, email, status, id], function(err) {
+  if (password) {
+    const crypto = require('crypto');
+    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
+    sql = `UPDATE users SET username = ?, role = ?, fullName = ?, email = ?, status = ?, password = ? WHERE id = ?`;
+    params = [username, role, fullName, email, status, hashedPassword, id];
+  } else {
+    sql = `UPDATE users SET username = ?, role = ?, fullName = ?, email = ?, status = ? WHERE id = ?`;
+    params = [username, role, fullName, email, status, id];
+  }
+
+  db.run(sql, params, function(err) {
     if (err) {
       // Check if it's a duplicate username error
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(400).json({ error: 'Username already exists' });
       } else if (err.message.includes('no such column')) {
-        // If columns don't exist, try updating with basic fields only
+        // Fallback logic if some columns don't exist
         const fallbackSql = `UPDATE users SET username = ?, role = ? WHERE id = ?`;
         db.run(fallbackSql, [username, role, id], function(fallbackErr) {
           if (fallbackErr) {
             res.status(500).json({ error: fallbackErr.message });
             return;
-          }
-          if (this.changes === 0) {
-            return res.status(404).json({ error: 'User not found' });
           }
           res.json({ id, message: 'User updated successfully (basic fields only)' });
         });
