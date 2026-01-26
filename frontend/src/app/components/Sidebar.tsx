@@ -1,25 +1,29 @@
 import { LayoutDashboard, Users, Download, Database, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
-  currentPage: string;
-  onNavigate: (page: string) => void;
   onCollapse?: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ currentPage, onNavigate, onCollapse }: SidebarProps) {
+export function Sidebar({ onCollapse }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'export', label: 'Export Data', icon: Download },
-    { id: 'backup', label: 'Backup & Restore', icon: Database },
+    { id: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { id: '/titles', label: 'Land Titles', icon: FileSpreadsheet },
+    { id: '/users', label: 'User Management', icon: Users },
+    { id: '/export', label: 'Export Data', icon: Download },
+    { id: '/backup', label: 'Backup & Restore', icon: Database },
   ];
+
+  const currentPath = location.pathname;
 
   return (
     <aside
-      className={`bg-white border-r border-gray-200 fixed h-full transition-all duration-300 z-10 ${
+      className={`bg-white border-r border-gray-200 sticky top-0 h-screen transition-all duration-300 z-30 ${
         collapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -51,11 +55,15 @@ export function Sidebar({ currentPage, onNavigate, onCollapse }: SidebarProps) {
         <nav className="space-y-2 mb-4">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPage === item.id;
+            // Check if active: exact match for root, or starts with for others (to handle sub-routes like /titles/123)
+            const isActive = item.id === '/' 
+              ? currentPath === '/' 
+              : currentPath.startsWith(item.id);
+            
             return (
               <button
                 key={item.id}
-                onClick={() => onNavigate(item.id)}
+                onClick={() => navigate(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-emerald-100 text-emerald-700'

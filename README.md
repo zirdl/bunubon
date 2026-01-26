@@ -22,21 +22,23 @@ bunubon/
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd bunubon
    ```
 
 2. Install dependencies for both frontend and backend:
+
    ```bash
    # Install root dependencies
    npm install
-   
+
    # Install frontend dependencies
    cd frontend
    npm install
    cd ..
-   
+
    # Install backend dependencies
    cd backend
    npm install
@@ -48,10 +50,12 @@ bunubon/
 #### Option 1: Run Frontend and Backend Separately
 
 1. **Start the Backend Server:**
+
    ```bash
    cd backend
    npm run dev
    ```
+
    The backend will be available at `http://localhost:5000`
 
 2. **In a separate terminal, start the Frontend:**
@@ -64,6 +68,7 @@ bunubon/
 #### Option 2: Run Using Root Scripts
 
 From the project root directory:
+
 ```bash
 # Start both frontend and backend concurrently
 npm run dev
@@ -96,7 +101,16 @@ The application uses SQLite for data storage. The database file (`database.db`) 
 ## API Endpoints
 
 The backend provides RESTful APIs for:
+
 - `/api/municipalities` - Manage municipalities and their data
 - `/api/titles` - Manage land titles
 - `/api/users` - User authentication and management
 - `/api/checkpoints` - Track processing checkpoints
+
+## Future Improvements / TODO
+
+- [ ] **Cloud Spreadsheet Integration**: Implement integration with cloud-based storage (e.g., Microsoft OneDrive/Excel Online or Google Sheets) for live data synchronization or bulk importing.
+- [ ] **Advanced Reporting**: Generate PDF/Excel reports for municipality progress.
+- [ ] **Audit Logs**: Track changes made to land title records.
+- [ ] **Document Upload**: Allow attaching scanned copies of land titles to records.
+

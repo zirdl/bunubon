@@ -16,13 +16,11 @@ const TitlesListRow = ({ index, style, titles, onEdit, onDelete }: any) => {
             <td className="w-[15%] px-4 py-3 text-sm font-medium truncate">{title.serialNumber}</td>
             <td className="w-[15%] px-4 py-3">
               <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                title.titleType === 'Mother CCLOA' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
                 title.titleType === 'SPLIT' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                title.titleType === 'TCT-CLOA' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
-                title.titleType === 'TCT-EP' ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' :
-                'bg-blue-100 text-blue-800 border border-blue-200'
+                title.titleType === 'Regular' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                'bg-gray-100 text-gray-800 border border-gray-200'
               }`}>
-                {title.titleType}
+                {title.titleType === 'Regular' && title.subtype ? `${title.titleType} (${title.subtype})` : title.titleType}
               </span>
             </td>
             <td className="w-[15%] px-4 py-3 text-sm truncate">{title.beneficiaryName}</td>
@@ -237,7 +235,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
 
   // Calculate statistics
   const splitCount = titles.filter(t => t.titleType === 'SPLIT').length;
-  const motherCloaCount = titles.filter(t => t.titleType === 'Mother CCLOA').length;
+  const regularCount = titles.filter(t => t.titleType === 'Regular').length;
   
   const releasedCount = titles.filter(t => t.status === 'released' || t.status === 'Released').length;
 
@@ -267,8 +265,8 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
             <p className="text-2xl text-amber-700 font-bold">{splitCount}</p>
           </div>
           <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 shadow-sm">
-            <p className="text-sm text-purple-800 mb-1 font-medium">Mother CCLOA</p>
-            <p className="text-2xl text-purple-700 font-bold">{motherCloaCount}</p>
+            <p className="text-sm text-purple-800 mb-1 font-medium">Regular Titles</p>
+            <p className="text-2xl text-purple-700 font-bold">{regularCount}</p>
           </div>
           <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 shadow-sm">
             <p className="text-sm text-emerald-800 mb-1 font-medium">Released</p>
@@ -295,9 +293,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
           >
             <option value="all">All Types</option>
             <option value="SPLIT">SPLIT</option>
-            <option value="Mother CCLOA">Mother CCLOA</option>
-            <option value="TCT-CLOA">TCT-CLOA (Legacy)</option>
-            <option value="TCT-EP">TCT-EP (Legacy)</option>
+            <option value="Regular">Regular</option>
           </select>
           <select
             value={filterStatus}
@@ -354,13 +350,11 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
                             <td className="w-[15%] px-4 py-3 text-sm font-medium truncate">{title.serialNumber}</td>
                             <td className="w-[15%] px-4 py-3">
                               <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                title.titleType === 'Mother CCLOA' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
                                 title.titleType === 'SPLIT' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                title.titleType === 'TCT-CLOA' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
-                                title.titleType === 'TCT-EP' ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' :
-                                'bg-blue-100 text-blue-800 border border-blue-200'
+                                title.titleType === 'Regular' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                'bg-gray-100 text-gray-800 border border-gray-200'
                               }`}>
-                                {title.titleType}
+                                {title.titleType === 'Regular' && title.subtype ? `${title.titleType} (${title.subtype})` : title.titleType}
                               </span>
                             </td>
                             <td className="w-[15%] px-4 py-3 text-sm truncate">{title.beneficiaryName}</td>

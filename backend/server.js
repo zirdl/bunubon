@@ -49,6 +49,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         subtype TEXT,
         beneficiaryName TEXT NOT NULL,
         lotNumber TEXT NOT NULL,
+        barangayLocation TEXT,
         area REAL DEFAULT 0,
         status TEXT DEFAULT 'on-hand',
         dateIssued TEXT,
@@ -58,6 +59,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
         notes TEXT,
         FOREIGN KEY (municipality_id) REFERENCES municipalities (id)
       )`);
+
+      // Create indexes for faster searching and filtering
+      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_municipality ON titles(municipality_id)`);
+      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_serial ON titles(serialNumber)`);
+      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_beneficiary ON titles(beneficiaryName)`);
+      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_status ON titles(status)`);
+      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_type ON titles(titleType)`);
 
       // Users table
       db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -83,6 +91,11 @@ const db = new sqlite3.Database(dbPath, (err) => {
                if (!err) console.log("Added subtype column to titles table");
              });
            }
+           if (!columnNames.includes('barangayLocation')) {
+             db.run("ALTER TABLE titles ADD COLUMN barangayLocation TEXT", (err) => {
+               if (!err) console.log("Added barangayLocation column to titles table");
+             });
+           }
            if (!columnNames.includes('dateRegistered')) {
              db.run("ALTER TABLE titles ADD COLUMN dateRegistered TEXT", (err) => {
                if (!err) console.log("Added dateRegistered column to titles table");
@@ -96,6 +109,16 @@ const db = new sqlite3.Database(dbPath, (err) => {
            if (!columnNames.includes('dateDistributed')) {
              db.run("ALTER TABLE titles ADD COLUMN dateDistributed TEXT", (err) => {
                if (!err) console.log("Added dateDistributed column to titles table");
+             });
+           }
+           if (!columnNames.includes('mother_ccloa_no')) {
+             db.run("ALTER TABLE titles ADD COLUMN mother_ccloa_no TEXT", (err) => {
+               if (!err) console.log("Added mother_ccloa_no column to titles table");
+             });
+           }
+           if (!columnNames.includes('title_no')) {
+             db.run("ALTER TABLE titles ADD COLUMN title_no TEXT", (err) => {
+               if (!err) console.log("Added title_no column to titles table");
              });
            }
         });
@@ -238,6 +261,7 @@ app.get('/api/municipalities', (req, res) => {
     FROM municipalities m
     LEFT JOIN municipality_checkpoints mc ON m.id = mc.municipality_id
     GROUP BY m.id
+    ORDER BY m.name ASC
   `;
 
   db.all(municipalitiesSql, [], (err, municipalities) => {
@@ -291,17 +315,17 @@ app.get('/api/municipalities', (req, res) => {
         const muniTitles = titleStats.filter(title => title.municipality_id === muni.id);
 
         muniTitles.forEach(title => {
-          // Map SPLIT and TCT-CLOA to the CLOA bucket
+          // Map SPLIT and TCT-CLOA to the CLOA bucket (SPLIT Group)
           if (title.titleType === 'SPLIT' || title.titleType === 'TCT-CLOA') {
             muni.tctCloaTotal += title.count;
-            if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
+            if (title.status === 'released' || title.status === 'processing') {
               muni.tctCloaProcessed += title.count;
             }
           } 
-          // Map MOTHER_CLOA and TCT-EP to the EP bucket
-          else if (title.titleType === 'MOTHER_CLOA' || title.titleType === 'TCT-EP') {
+          // Map Regular, Mother CCLOA and TCT-EP to the EP bucket (Regular Group)
+          else if (title.titleType === 'Regular' || title.titleType === 'Mother CCLOA' || title.titleType === 'TCT-EP') {
             muni.tctEpTotal += title.count;
-            if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
+            if (title.status === 'released' || title.status === 'processing') {
               muni.tctEpProcessed += title.count;
             }
           }
@@ -377,17 +401,17 @@ app.get('/api/municipalities/:id', (req, res) => {
 
       // Calculate title counts
       titleStats.forEach(title => {
-        // Map SPLIT and TCT-CLOA to the CLOA bucket
+        // Map SPLIT and TCT-CLOA to the CLOA bucket (SPLIT Group)
         if (title.titleType === 'SPLIT' || title.titleType === 'TCT-CLOA') {
           muni.tctCloaTotal += title.count;
-          if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
+          if (title.status === 'released' || title.status === 'processing') {
             muni.tctCloaProcessed += title.count;
           }
         } 
-        // Map MOTHER_CLOA and TCT-EP to the EP bucket
-        else if (title.titleType === 'MOTHER_CLOA' || title.titleType === 'TCT-EP') {
+        // Map Regular, Mother CCLOA and TCT-EP to the EP bucket (Regular Group)
+        else if (title.titleType === 'Regular' || title.titleType === 'Mother CCLOA' || title.titleType === 'TCT-EP') {
           muni.tctEpTotal += title.count;
-          if (title.status === 'Released' || title.status === 'released' || title.status === 'Processed') {
+          if (title.status === 'released' || title.status === 'processing') {
             muni.tctEpProcessed += title.count;
           }
         }
@@ -493,17 +517,131 @@ app.delete('/api/municipalities/:id', (req, res) => {
   });
 });
 
-// Get titles for a municipality
-app.get('/api/titles/:municipalityId', (req, res) => {
-  const { municipalityId } = req.params;
-  const sql = `SELECT * FROM titles WHERE municipality_id = ?`;
-  
-  db.all(sql, [municipalityId], (err, rows) => {
+// Get all titles with pagination and filters (Global Search)
+app.get('/api/titles', (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const offset = (page - 1) * limit;
+  const search = req.query.search || '';
+  const status = req.query.status || 'all';
+  const type = req.query.type || 'all';
+
+  let whereConditions = [];
+  let params = [];
+
+  if (search) {
+    whereConditions.push("(serialNumber LIKE ? OR beneficiaryName LIKE ? OR m.name LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  if (status !== 'all') {
+    whereConditions.push("t.status = ?");
+    params.push(status);
+  }
+
+  if (type !== 'all') {
+    whereConditions.push("t.titleType = ?");
+    params.push(type);
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+  const countSql = `
+    SELECT COUNT(*) as total 
+    FROM titles t
+    LEFT JOIN municipalities m ON t.municipality_id = m.id
+    ${whereClause}
+  `;
+
+  const dataSql = `
+    SELECT t.*, m.name as municipalityName 
+    FROM titles t
+    LEFT JOIN municipalities m ON t.municipality_id = m.id
+    ${whereClause}
+    ORDER BY t.serialNumber ASC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.get(countSql, params, (err, countRow) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(rows);
+
+    db.all(dataSql, [...params, limit, offset], (err, rows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      res.json({
+        data: rows,
+        pagination: {
+          total: countRow.total,
+          page,
+          limit,
+          totalPages: Math.ceil(countRow.total / limit)
+        }
+      });
+    });
+  });
+});
+
+// Get titles for a municipality with pagination and filters
+app.get('/api/titles/:municipalityId', (req, res) => {
+  const { municipalityId } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const offset = (page - 1) * limit;
+  const search = req.query.search || '';
+  const status = req.query.status || 'all';
+  const type = req.query.type || 'all';
+
+  let whereConditions = ["municipality_id = ?"];
+  let params = [municipalityId];
+
+  if (search) {
+    whereConditions.push("(serialNumber LIKE ? OR beneficiaryName LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (status !== 'all') {
+    whereConditions.push("status = ?");
+    params.push(status);
+  }
+
+  if (type !== 'all') {
+    whereConditions.push("titleType = ?");
+    params.push(type);
+  }
+
+  const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+
+  const countSql = `SELECT COUNT(*) as total FROM titles ${whereClause}`;
+  const dataSql = `SELECT * FROM titles ${whereClause} ORDER BY serialNumber ASC LIMIT ? OFFSET ?`;
+  
+  db.get(countSql, params, (err, countRow) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    db.all(dataSql, [...params, limit, offset], (err, rows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      res.json({
+        data: rows,
+        pagination: {
+          total: countRow.total,
+          page,
+          limit,
+          totalPages: Math.ceil(countRow.total / limit)
+        }
+      });
+    });
   });
 });
 
@@ -528,12 +666,12 @@ app.get('/api/titles/:municipalityId/:titleId', (req, res) => {
 // Create title
 app.post('/api/titles/:municipalityId', (req, res) => {
   const { municipalityId } = req.params;
-  const { id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes } = req.body;
+  const { id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
   
-  const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   
-  db.run(sql, [id, municipalityId, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes], function(err) {
+  db.run(sql, [id, municipalityId, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -542,17 +680,101 @@ app.post('/api/titles/:municipalityId', (req, res) => {
   });
 });
 
+// Bulk Import Titles
+app.post('/api/titles/batch', (req, res) => {
+  const { titles } = req.body;
+  
+  if (!titles || !Array.isArray(titles)) {
+    return res.status(400).json({ error: 'Invalid data format. Expected an array of titles.' });
+  }
+
+  let successCount = 0;
+  let failedCount = 0;
+  let errors = [];
+
+  // Get all municipalities first for lookup
+  db.all('SELECT id, name FROM municipalities', [], async (err, municipalities) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error fetching municipalities' });
+    }
+
+    const processTitle = (title) => {
+      return new Promise((resolve) => {
+        // Find municipality ID
+        const muniName = title.municipality ? title.municipality.trim() : '';
+        const muni = municipalities.find(m => m.name.toLowerCase() === muniName.toLowerCase());
+        
+        if (!muni) {
+          failedCount++;
+          errors.push(`Row with Serial ${title.serialNumber}: Municipality '${muniName}' not found`);
+          return resolve();
+        }
+
+        const crypto = require('crypto');
+        const id = crypto.randomUUID();
+        
+        // Parse dates if present (assuming YYYY-MM-DD or similar standard format)
+        // If empty, set to null or empty string
+        
+        const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        
+        const params = [
+          id, 
+          muni.id, 
+          title.serialNumber, 
+          title.titleType, 
+          title.subtype || '', 
+          title.beneficiaryName, 
+          title.lotNumber, 
+          parseFloat(title.area) || 0, 
+          title.status, 
+          title.dateIssued || '', 
+          title.dateRegistered || '', 
+          title.dateReceived || '', 
+          title.dateDistributed || '', 
+          title.notes || '',
+          title.mother_ccloa_no || '',
+          title.title_no || ''
+        ];
+
+        db.run(sql, params, function(err) {
+          if (err) {
+            failedCount++;
+            errors.push(`Row with Serial ${title.serialNumber}: ${err.message}`);
+          } else {
+            successCount++;
+          }
+          resolve();
+        });
+      });
+    };
+
+    // Process all titles sequentially to avoid SQLite locking issues with massive parallel writes
+    for (const title of titles) {
+      await processTitle(title);
+    }
+
+    res.json({
+      message: 'Batch import completed',
+      successCount,
+      failedCount,
+      errors
+    });
+  });
+});
+
 // Update title
 app.put('/api/titles/:municipalityId/:titleId', (req, res) => {
   const { municipalityId, titleId } = req.params;
-  const { serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes } = req.body;
+  const { serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
   
   const sql = `UPDATE titles 
                SET serialNumber = ?, titleType = ?, subtype = ?, beneficiaryName = ?, lotNumber = ?, 
-                   area = ?, status = ?, dateIssued = ?, dateRegistered = ?, dateReceived = ?, dateDistributed = ?, notes = ?
+                   area = ?, status = ?, dateIssued = ?, dateRegistered = ?, dateReceived = ?, dateDistributed = ?, notes = ?, mother_ccloa_no = ?, title_no = ?
                WHERE id = ? AND municipality_id = ?`;
   
-  db.run(sql, [serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, titleId, municipalityId], function(err) {
+  db.run(sql, [serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no, titleId, municipalityId], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
