@@ -1,18 +1,18 @@
 # Implementation Plan: Google Sheets API Ingestion
 
-## Phase 1: Backend Infrastructure & API
+## Phase 1: Backend Infrastructure & API [checkpoint: 5af054f]
 
 - [x] Task: Install `googleapis` in the backend (6d0c864)
 - [x] Task: Create Google Sheets service utility (02dbb21)
-    - [ ] Implement service account authentication logic
-    - [ ] Create function to fetch raw rows from a Sheet ID and Range
+    - [x] Implement service account authentication logic
+    - [x] Create function to fetch raw rows from a Sheet ID and Range
 - [x] Task: Implement Sync Logic (240d52d)
-    - [ ] Create logic to map spreadsheet columns to Title database fields
-    - [ ] Implement "Upsert" logic (Update if serial number exists, otherwise Insert)
+    - [x] Create logic to map spreadsheet columns to Title database fields
+    - [x] Implement "Upsert" logic (Update if serial number exists, otherwise Insert)
 - [x] Task: Create Sync Endpoints (5af054f)
-    - [ ] `POST /api/sync/preview`: Returns data for the frontend to display without saving
-    - [ ] `POST /api/sync/confirm`: Actually performs the database write
-- [ ] Task: Conductor - User Manual Verification 'Backend Sync Logic' (Protocol in workflow.md)
+    - [x] `POST /api/sync/preview`: Returns data for the frontend to display without saving
+    - [x] `POST /api/sync/confirm`: Actually performs the database write
+- [x] Task: Conductor - User Manual Verification 'Backend Sync Logic' (Protocol in workflow.md) (5af054f)
 
 ## Phase 2: Frontend Integration
 
