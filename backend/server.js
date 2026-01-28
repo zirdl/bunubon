@@ -1086,6 +1086,41 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+// Google Sheets Sync Endpoints
+const { fetchSheetRows } = require('./utils/googleSheets');
+const { mapRowsToTitles, syncTitles } = require('./utils/sync');
+
+app.post('/api/sync/google-sheets/preview', async (req, res) => {
+  const { sheetId, range, mapping } = req.body;
+
+  if (!sheetId || !range || !mapping) {
+    return res.status(400).json({ error: 'Missing required parameters: sheetId, range, or mapping' });
+  }
+
+  try {
+    const rows = await fetchSheetRows(sheetId, range);
+    const titles = mapRowsToTitles(rows, mapping);
+    res.json({ data: titles });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/sync/google-sheets/confirm', async (req, res) => {
+  const { titles } = req.body;
+
+  if (!titles || !Array.isArray(titles)) {
+    return res.status(400).json({ error: 'Invalid data format. Expected an array of titles.' });
+  }
+
+  try {
+    const results = await syncTitles(db, titles);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 if (require.main === module) {
   app.listen(port, '0.0.0.0', () => {
