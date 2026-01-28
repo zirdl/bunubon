@@ -1,4 +1,4 @@
-# Track export_excel_20260128 Context
+# Track google_sheets_sync_20260128 Context
 
 - [Specification](./spec.md)
 - [Implementation Plan](./plan.md)
