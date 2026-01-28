@@ -9,7 +9,7 @@
 - [x] Task: Implement Sync Logic (240d52d)
     - [ ] Create logic to map spreadsheet columns to Title database fields
     - [ ] Implement "Upsert" logic (Update if serial number exists, otherwise Insert)
-- [ ] Task: Create Sync Endpoints
+- [x] Task: Create Sync Endpoints (5af054f)
     - [ ] `POST /api/sync/preview`: Returns data for the frontend to display without saving
     - [ ] `POST /api/sync/confirm`: Actually performs the database write
 - [ ] Task: Conductor - User Manual Verification 'Backend Sync Logic' (Protocol in workflow.md)
