@@ -1,6 +1,6 @@
 # Implementation Plan: Export to Excel
 
-## Phase 1: Backend Implementation
+## Phase 1: Backend Implementation [checkpoint: e9b75b0]
 
 - [x] Task: Install `xlsx` or similar library in the backend (60c8bab)
 - [x] Task: Create Excel generation utility (f94c450)
