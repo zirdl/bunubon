@@ -13,10 +13,6 @@
 
 ## Phase 2: Frontend Implementation
 
-- [ ] Task: Add Export function to the API service
-    - [ ] Write unit tests for the export service function
-    - [ ] Implement the function to call the backend export endpoint and trigger a browser download
-- [ ] Task: Add "Export to Excel" button to the Titles Page
-    - [ ] Write tests for the button and its interaction
-    - [ ] Implement the button in `TitlesPage.tsx` or `TitlesList.tsx`
+- [x] Task: Add Export function to the API service (31b5f21)
+- [x] Task: Add "Export to Excel" button to the Titles Page (31b5f21)
 - [ ] Task: Conductor - User Manual Verification 'Frontend Implementation' (Protocol in workflow.md)
