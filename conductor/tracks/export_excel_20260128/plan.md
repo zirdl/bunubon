@@ -3,7 +3,7 @@
 ## Phase 1: Backend Implementation
 
 - [x] Task: Install `xlsx` or similar library in the backend (60c8bab)
-- [ ] Task: Create Excel generation utility
+- [x] Task: Create Excel generation utility (f94c450)
     - [ ] Write tests for the utility (mocking data)
     - [ ] Implement the utility to convert JSON records to an Excel buffer
 - [ ] Task: Implement the Export API endpoint
