@@ -11,7 +11,7 @@
     - [ ] Implement the route and controller to fetch titles and stream the Excel file
 - [ ] Task: Conductor - User Manual Verification 'Backend Implementation' (Protocol in workflow.md)
 
-## Phase 2: Frontend Implementation
+## Phase 2: Frontend Implementation [checkpoint: 3c8d86e]
 
 - [x] Task: Implement Excel export on the dedicated Export page (424c19c)
-- [ ] Task: Conductor - User Manual Verification 'Frontend Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Frontend Implementation' (Protocol in workflow.md) (3c8d86e)
