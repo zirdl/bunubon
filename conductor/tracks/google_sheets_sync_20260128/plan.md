@@ -14,9 +14,10 @@
     - [x] `POST /api/sync/confirm`: Actually performs the database write
 - [x] Task: Conductor - User Manual Verification 'Backend Sync Logic' (Protocol in workflow.md) (5af054f)
 
-## Phase 2: Frontend Integration
+## Phase 2: Frontend Integration [checkpoint: 0eaace6]
 
-- [x] Task: Add "Sync from Google Sheets" section to the Import/Export page (f5b23dd)
-- [x] Task: Implement Preview Modal (f5b23dd)
-- [x] Task: Implement Final Sync Action (f5b23dd)
-- [ ] Task: Conductor - User Manual Verification 'Frontend Sync UI' (Protocol in workflow.md)
+- [x] Task: Add "Sync from Google Sheets" to Dashboard Action Center (0eaace6)
+- [x] Task: Implement Sync Config Modal (0eaace6)
+- [x] Task: Implement Preview Modal (0eaace6)
+- [x] Task: Implement Final Sync Action (0eaace6)
+- [x] Task: Conductor - User Manual Verification 'Frontend Sync UI' (Protocol in workflow.md) (0eaace6)
