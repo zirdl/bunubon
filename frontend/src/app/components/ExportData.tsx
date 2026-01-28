@@ -1,38 +1,61 @@
 import { FileSpreadsheet, Download } from 'lucide-react';
 
+const API_BASE_URL = '/api';
+
 export function ExportData() {
-  const handleExportCSV = () => {
-    // Get municipality data
-    const municipalities = JSON.parse(localStorage.getItem('dar_municipalities') || '[]');
-    
-    // Create CSV content
-    const headers = ['Municipality', 'TCT-CLOA Total', 'TCT-CLOA Processed', 'TCT-EP Total', 'TCT-EP Processed', 'Status', 'Checkpoint 1', 'Checkpoint 2', 'Notes'];
-    const rows = municipalities.map((m: any) => [
-      m.name,
-      m.tctCloaTotal,
-      m.tctCloaProcessed,
-      m.tctEpTotal,
-      m.tctEpProcessed,
-      m.status,
-      m.checkpoints[0]?.completed ? 'Completed' : 'Pending',
-      m.checkpoints[1]?.completed ? 'Completed' : 'Pending',
-      m.notes || ''
-    ]);
-    
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-    
-    // Download file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `dar_laTunion_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+  const handleExportCSV = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/municipalities`);
+      if (!response.ok) throw new Error('Failed to fetch data');
+      const municipalities = await response.json();
+      
+      // Create CSV content
+      const headers = ['Municipality', 'TCT-CLOA Total', 'TCT-CLOA Processed', 'TCT-EP Total', 'TCT-EP Processed', 'Status', 'District', 'Notes'];
+      const rows = municipalities.map((m: any) => [
+        m.name,
+        m.tctCloaTotal,
+        m.tctCloaProcessed,
+        m.tctEpTotal,
+        m.tctEpProcessed,
+        m.status,
+        `District ${m.district}`,
+        m.notes || ''
+      ]);
+      
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+      
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `dar_municipalities_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Failed to export CSV. Please try again.');
+    }
   };
 
-  const handleExportExcel = () => {
-    alert('Excel export will be available with full implementation. For now, please use CSV export.');
+  const handleExportExcel = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/titles/export`);
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `land_titles_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      alert('Failed to export Excel. Please try again.');
+    }
   };
 
   return (

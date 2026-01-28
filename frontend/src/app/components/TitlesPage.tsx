@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy } from 'react';
-import { Search, FileText, MapPin, ListFilter, Trash2, Edit2, Plus, Building2, Download } from 'lucide-react';
+import { Search, FileText, MapPin, ListFilter, Trash2, Edit2, Plus, Building2 } from 'lucide-react';
 import { MunicipalityCard } from './MunicipalityCard';
 import { MunicipalityForm, MunicipalityData } from './MunicipalityForm';
 import { TitleForm, LandTitle } from './TitleForm';
@@ -567,26 +567,6 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const handleExport = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/titles/export`);
-      if (!response.ok) throw new Error('Export failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `land_titles_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Error exporting titles:', error);
-      alert('Failed to export titles. Please try again.');
-    }
-  };
-
   return (
     <div className="flex-1 overflow-auto bg-emerald-50/30">
       <div className="max-w-[85%] mx-auto px-4 py-8">
@@ -641,15 +621,6 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                   <option value="released">Released</option>
                 </select>
                 
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-white text-emerald-700 border border-emerald-200 rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm font-bold whitespace-nowrap"
-                  title="Export all titles to Excel"
-                >
-                  <Download className="w-4 h-4" />
-                  Export to Excel
-                </button>
-
                 {!userRole || userRole !== 'Viewer' ? (
                   <button
                     onClick={() => setShowTitleForm(true)}
@@ -795,15 +766,6 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                   <option value={1}>District 1</option>
                   <option value={2}>District 2</option>
                 </select>
-
-                <button
-                  onClick={handleExport}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-white text-emerald-700 border border-emerald-200 rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm font-bold whitespace-nowrap"
-                  title="Export all titles to Excel"
-                >
-                  <Download className="w-4 h-4" />
-                  Export to Excel
-                </button>
 
                 {!userRole || userRole !== 'Viewer' ? (
                   <button
