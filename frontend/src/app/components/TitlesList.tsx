@@ -228,14 +228,22 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
       t.lotNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.barangayLocation.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesType = filterType === 'all' || t.titleType === filterType;
+    let matchesType = true;
+    if (filterType === 'SPLIT') {
+      matchesType = t.titleType === 'SPLIT' || t.titleType === 'TCT-CLOA' || t.titleType === 'TCT-CLOA (Legacy)';
+    } else if (filterType === 'Regular') {
+      matchesType = t.titleType === 'Regular' || t.titleType === 'Mother CCLOA' || t.titleType === 'TCT-EP' || t.titleType === 'TCT-EP (Legacy)';
+    } else if (filterType !== 'all') {
+      matchesType = t.titleType === filterType;
+    }
+
     const matchesStatus = filterStatus === 'all' || t.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
   });
 
   // Calculate statistics
-  const splitCount = titles.filter(t => t.titleType === 'SPLIT').length;
-  const regularCount = titles.filter(t => t.titleType === 'Regular').length;
+  const splitCount = titles.filter(t => t.titleType === 'SPLIT' || t.titleType === 'TCT-CLOA' || t.titleType === 'TCT-CLOA (Legacy)').length;
+  const regularCount = titles.filter(t => t.titleType === 'Regular' || t.titleType === 'Mother CCLOA' || t.titleType === 'TCT-EP' || t.titleType === 'TCT-EP (Legacy)').length;
   
   const releasedCount = titles.filter(t => t.status === 'released' || t.status === 'Released').length;
 

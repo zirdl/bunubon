@@ -28,8 +28,8 @@ const municipalities = [
   { id: '20', name: 'San Fernando', district: 1 },
 ];
 
-const titleTypes = ['SPLIT', 'Mother CCLOA', 'TCT-CLOA', 'TCT-EP'];
-const motherSubtypes = ['TCT', 'CLOA'];
+const titleTypes = ['SPLIT', 'Regular'];
+const regularSubtypes = ['TCT-CLOA', 'TCT-EP'];
 const statuses = ['on-hand', 'processing', 'released'];
 const firstNames = ['JUAN', 'MARIA', 'JOSE', 'ANA', 'PEDRO', 'ELENA', 'LUIS', 'CARMEN', 'ANTONIO', 'ROSA', 'REYNANTE', 'GREGORIO', 'FELICIDAD', 'TERESITA', 'RODRIGO'];
 const lastNames = ['SANTOS', 'REYES', 'CRUZ', 'GARCIA', 'GONZALES', 'LOPEZ', 'BAUTISTA', 'HERNANDEZ', 'RAMOS', 'FLORES', 'MENDOZA', 'PASCUA', 'DE GUZMAN', 'VILLANUEVA'];
@@ -107,12 +107,14 @@ for (let i = 0; i < numTitles; i++) {
   }
 
   let subtype = '';
-  if (type === 'Mother CCLOA') {
-    subtype = getRandomElement(motherSubtypes);
-  } else if (type === 'TCT-CLOA') {
-    subtype = 'CLOA';
-  } else if (type === 'TCT-EP') {
-    subtype = 'EP';
+  let mother_ccloa_no = '';
+  let title_no = '';
+
+  if (type === 'Regular') {
+    subtype = getRandomElement(regularSubtypes);
+  } else if (type === 'SPLIT') {
+    mother_ccloa_no = `CLOA-${Math.floor(1000 + Math.random() * 9000)}`;
+    title_no = `T-${Math.floor(10000 + Math.random() * 90000)}`;
   }
 
   titlesToInsert.push({
@@ -121,6 +123,8 @@ for (let i = 0; i < numTitles; i++) {
     serialNumber: `SN-${Math.floor(100000 + Math.random() * 900000)}`,
     titleType: type,
     subtype: subtype,
+    mother_ccloa_no: mother_ccloa_no,
+    title_no: title_no,
     beneficiaryName: `${getRandomElement(firstNames)} ${getRandomElement(lastNames)}`,
     lotNumber: `${Math.floor(1 + Math.random() * 500)}-${getRandomElement(['A', 'B', 'C', 'D'])}`,
     barangayLocation: getRandomElement(getBarangaysForMunicipality(muni.name)),
@@ -170,15 +174,15 @@ db.serialize(() => {
   const stmt = db.prepare(`INSERT INTO titles (
     id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, 
     lotNumber, barangayLocation, area, status, dateIssued, dateRegistered, dateReceived, 
-    dateDistributed, notes
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    dateDistributed, notes, mother_ccloa_no, title_no
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
 
   db.run("BEGIN TRANSACTION");
   titlesToInsert.forEach(t => {
     stmt.run([
       t.id, t.municipality_id, t.serialNumber, t.titleType, t.subtype, t.beneficiaryName,
       t.lotNumber, t.barangayLocation, t.area, t.status, t.dateIssued, t.dateRegistered,
-      t.dateReceived, t.dateDistributed, t.notes
+      t.dateReceived, t.dateDistributed, t.notes, t.mother_ccloa_no, t.title_no
     ]);
   });
   
@@ -186,7 +190,7 @@ db.serialize(() => {
     if (err) {
       console.error("Error committing transaction:", err);
     } else {
-      console.log(`Successfully regenerated ${titlesToInsert.length} titles with updated types and subtypes.`);
+      console.log(`Successfully regenerated ${titlesToInsert.length} titles with updated types, subtypes, and SPLIT fields.`);
     }
     db.close();
   });

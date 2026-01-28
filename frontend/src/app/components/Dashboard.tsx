@@ -118,15 +118,36 @@ export function Dashboard({
     .sort()
     .reverse();
 
+  // Define helper functions before they're used
+  const isRegularType = (type: string) =>
+    type === "Regular" || type === "Mother CCLOA" || type === "TCT-EP" || type === "TCT-EP (Legacy)";
+  const isSplitType = (type: string) =>
+    type === "SPLIT" || type === "TCT-CLOA" || type === "TCT-CLOA (Legacy)";
+
   const filteredTitlesData = titlesData.filter((t) => {
-    if (filterType !== "all" && t.titleType !== filterType) return false;
+    // Apply title type filter
+    if (filterType !== "all") {
+      if (filterType === "SPLIT") {
+        if (!isSplitType(t.titleType)) return false;
+      } else if (filterType === "Regular") {
+        if (!isRegularType(t.titleType)) return false;
+      } else if (t.titleType !== filterType) {
+        // For other specific types
+        return false;
+      }
+    }
+
+    // Apply date filters
     const dateStr = t.dateIssued || t.dateRegistered || t.dateReceived;
-    if (filterYear !== "all" || filterMonth !== "all") {
-      if (!dateStr) return false;
+    if (dateStr) {
       const d = new Date(dateStr);
       if (filterYear !== "all" && d.getFullYear().toString() !== filterYear) return false;
       if (filterMonth !== "all" && d.getMonth().toString() !== filterMonth) return false;
+    } else if (filterYear !== "all" || filterMonth !== "all") {
+      // If a date filter is applied but the title has no date, exclude it
+      return false;
     }
+
     return true;
   });
 
@@ -157,10 +178,20 @@ export function Dashboard({
           const d = new Date(dStr);
           return d.getMonth() === month && d.getFullYear() === year;
         });
+
+        // Calculate values based on the active filter
+        let splitCount = 0, regularCount = 0;
+        if (filterType === "all" || filterType === "SPLIT") {
+          splitCount = titlesInMonth.filter((t) => isSplitType(t.titleType)).length;
+        }
+        if (filterType === "all" || filterType === "Regular") {
+          regularCount = titlesInMonth.filter((t) => isRegularType(t.titleType)).length;
+        }
+
         dataPoints.push({
           month: monthName,
-          SPLIT: titlesInMonth.filter((t) => t.titleType === "SPLIT").length,
-          "Mother CCLOA": titlesInMonth.filter((t) => t.titleType === "Mother CCLOA").length,
+          SPLIT: splitCount,
+          Regular: regularCount,
         });
       }
     } else {
@@ -176,10 +207,20 @@ export function Dashboard({
           const titleDate = new Date(dStr);
           return titleDate >= monthStart && titleDate <= monthEnd;
         });
+
+        // Calculate values based on the active filter
+        let splitCount = 0, regularCount = 0;
+        if (filterType === "all" || filterType === "SPLIT") {
+          splitCount = titlesThisMonth.filter((t) => isSplitType(t.titleType)).length;
+        }
+        if (filterType === "all" || filterType === "Regular") {
+          regularCount = titlesThisMonth.filter((t) => isRegularType(t.titleType)).length;
+        }
+
         dataPoints.push({
           month: monthName,
-          SPLIT: titlesThisMonth.filter((t) => t.titleType === "SPLIT").length,
-          "Mother CCLOA": titlesThisMonth.filter((t) => t.titleType === "Mother CCLOA").length,
+          SPLIT: splitCount,
+          Regular: regularCount,
         });
       }
     }
@@ -191,12 +232,26 @@ export function Dashboard({
   const chartData = municipalities
     .map((m) => {
       const muniTitles = filteredTitlesData.filter((t) => t.municipalityId === m.id);
+
+      // Calculate values based on the active filter
+      let splitOnHand = 0, splitProcessing = 0, regularOnHand = 0, regularProcessing = 0;
+
+      if (filterType === "all" || filterType === "SPLIT") {
+        splitOnHand = muniTitles.filter((t) => isSplitType(t.titleType) && (t.status === "on-hand" || t.status === "Pending")).length;
+        splitProcessing = muniTitles.filter((t) => isSplitType(t.titleType) && (t.status === "processing" || t.status === "Processed")).length;
+      }
+
+      if (filterType === "all" || filterType === "Regular") {
+        regularOnHand = muniTitles.filter((t) => isRegularType(t.titleType) && (t.status === "on-hand" || t.status === "Pending")).length;
+        regularProcessing = muniTitles.filter((t) => isRegularType(t.titleType) && (t.status === "processing" || t.status === "Processed")).length;
+      }
+
       return {
         name: m.name,
-        "SPLIT On-Hand": muniTitles.filter((t) => t.titleType === "SPLIT" && (t.status === "on-hand" || t.status === "Pending")).length,
-        "SPLIT Processing": muniTitles.filter((t) => t.titleType === "SPLIT" && (t.status === "processing" || t.status === "Processed")).length,
-        "Mother CCLOA On-Hand": muniTitles.filter((t) => t.titleType === "Mother CCLOA" && (t.status === "on-hand" || t.status === "Pending")).length,
-        "Mother CCLOA Processing": muniTitles.filter((t) => t.titleType === "Mother CCLOA" && (t.status === "processing" || t.status === "Processed")).length,
+        "SPLIT On-Hand": splitOnHand,
+        "SPLIT Processing": splitProcessing,
+        "Regular On-Hand": regularOnHand,
+        "Regular Processing": regularProcessing,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -215,7 +270,7 @@ export function Dashboard({
             <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="bg-transparent px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer">
                 <option value="all">All Types</option>
                 <option value="SPLIT">SPLIT</option>
-                <option value="Mother CCLOA">Mother CCLOA</option>
+                <option value="Regular">Regular</option>
             </select>
             <div className="h-4 w-px bg-gray-300 mx-1"></div>
             <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="bg-transparent px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer">
@@ -283,11 +338,30 @@ export function Dashboard({
                   <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} height={60} tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                  <Legend verticalAlign="top" height={36}/>
-                  <Bar dataKey="SPLIT On-Hand" stackId="a" fill="#3b82f6" name="SPLIT (On-Hand)" />
-                  <Bar dataKey="SPLIT Processing" stackId="a" fill="#93c5fd" name="SPLIT (Processing)" />
-                  <Bar dataKey="Mother CCLOA On-Hand" stackId="b" fill="#f59e0b" name="Mother CCLOA (On-Hand)" />
-                  <Bar dataKey="Mother CCLOA Processing" stackId="b" fill="#fcd34d" name="Mother CCLOA (Processing)" />
+                  <Legend
+                    verticalAlign="top"
+                    height={36}
+                    payload={
+                      [
+                        ...(filterType === "all" || filterType === "SPLIT" ? [{ value: 'SPLIT (On-Hand)', type: 'rect', id: 'SPLIT On-Hand', color: '#3b82f6' }] : []),
+                        ...(filterType === "all" || filterType === "SPLIT" ? [{ value: 'SPLIT (Processing)', type: 'rect', id: 'SPLIT Processing', color: '#93c5fd' }] : []),
+                        ...(filterType === "all" || filterType === "Regular" ? [{ value: 'Regular (On-Hand)', type: 'rect', id: 'Regular On-Hand', color: '#f59e0b' }] : []),
+                        ...(filterType === "all" || filterType === "Regular" ? [{ value: 'Regular (Processing)', type: 'rect', id: 'Regular Processing', color: '#fcd34d' }] : [])
+                      ]
+                    }
+                  />
+                  {(filterType === "all" || filterType === "SPLIT") && (
+                    <>
+                      <Bar dataKey="SPLIT On-Hand" stackId="a" fill="#3b82f6" name="SPLIT (On-Hand)" />
+                      <Bar dataKey="SPLIT Processing" stackId="a" fill="#93c5fd" name="SPLIT (Processing)" />
+                    </>
+                  )}
+                  {(filterType === "all" || filterType === "Regular") && (
+                    <>
+                      <Bar dataKey="Regular On-Hand" stackId="b" fill="#f59e0b" name="Regular (On-Hand)" />
+                      <Bar dataKey="Regular Processing" stackId="b" fill="#fcd34d" name="Regular (Processing)" />
+                    </>
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -340,9 +414,22 @@ export function Dashboard({
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                  <Legend verticalAlign="top" height={36}/>
-                  <Line type="monotone" dataKey="SPLIT" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="SPLIT Titles" />
-                  <Line type="monotone" dataKey="Mother CCLOA" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} name="Mother CCLOA" />
+                  <Legend
+                    verticalAlign="top"
+                    height={36}
+                    payload={
+                      [
+                        ...(filterType === "all" || filterType === "SPLIT" ? [{ value: 'SPLIT Titles', type: 'line', id: 'SPLIT', color: '#3b82f6' }] : []),
+                        ...(filterType === "all" || filterType === "Regular" ? [{ value: 'Regular Titles', type: 'line', id: 'Regular', color: '#f59e0b' }] : [])
+                      ]
+                    }
+                  />
+                  {(filterType === "all" || filterType === "SPLIT") && (
+                    <Line type="monotone" dataKey="SPLIT" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="SPLIT Titles" />
+                  )}
+                  {(filterType === "all" || filterType === "Regular") && (
+                    <Line type="monotone" dataKey="Regular" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} name="Regular Titles" />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>

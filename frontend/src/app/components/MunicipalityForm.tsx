@@ -89,11 +89,11 @@ export function MunicipalityForm({ municipality, onSubmit, onCancel }: Municipal
                   <span className="font-medium">{formData.tctCloaProcessed}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Mother CCLOA Total:</span>
+                  <span className="text-gray-600">Regular Total:</span>
                   <span className="font-medium">{formData.tctEpTotal}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Mother CCLOA Released:</span>
+                  <span className="text-gray-600">Regular Released:</span>
                   <span className="font-medium">{formData.tctEpProcessed}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-emerald-200">

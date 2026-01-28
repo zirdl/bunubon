@@ -608,7 +608,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                 >
                   <option value="all">All Types</option>
                   <option value="SPLIT">SPLIT</option>
-                  <option value="Mother CCLOA">Mother CCLOA</option>
+                  <option value="Regular">Regular</option>
                 </select>
                 <select
                   value={filterStatus}
