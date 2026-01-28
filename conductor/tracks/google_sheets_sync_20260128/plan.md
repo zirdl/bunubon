@@ -16,10 +16,7 @@
 
 ## Phase 2: Frontend Integration
 
-- [ ] Task: Add "Sync from Google Sheets" section to the Import/Export page
-- [ ] Task: Implement Preview Modal
-    - [ ] Display a table of "Pending Changes" from the Google Sheet
-    - [ ] Highlight errors (e.g., unknown municipality)
-- [ ] Task: Implement Final Sync Action
-    - [ ] Send confirmation to backend and show success/failure toast
+- [x] Task: Add "Sync from Google Sheets" section to the Import/Export page (f5b23dd)
+- [x] Task: Implement Preview Modal (f5b23dd)
+- [x] Task: Implement Final Sync Action (f5b23dd)
 - [ ] Task: Conductor - User Manual Verification 'Frontend Sync UI' (Protocol in workflow.md)
