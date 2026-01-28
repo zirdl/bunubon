@@ -539,7 +539,11 @@ app.get('/api/titles', (req, res) => {
     params.push(status);
   }
 
-  if (type !== 'all') {
+  if (type === 'SPLIT') {
+    whereConditions.push("t.titleType IN ('SPLIT', 'TCT-CLOA', 'TCT-CLOA (Legacy)')");
+  } else if (type === 'Regular') {
+    whereConditions.push("t.titleType IN ('Regular', 'Mother CCLOA', 'TCT-EP', 'TCT-EP (Legacy)')");
+  } else if (type !== 'all') {
     whereConditions.push("t.titleType = ?");
     params.push(type);
   }
@@ -587,6 +591,54 @@ app.get('/api/titles', (req, res) => {
   });
 });
 
+// Export titles to Excel
+const { generateExcel } = require('./utils/excel');
+
+app.get('/api/titles/export', (req, res) => {
+  const sql = `
+    SELECT t.*, m.name as municipalityName 
+    FROM titles t
+    LEFT JOIN municipalities m ON t.municipality_id = m.id
+    ORDER BY m.name ASC, t.serialNumber ASC
+  `;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+
+    // Prepare data for Excel - renaming keys for better readability in the spreadsheet
+    const excelData = rows.map(row => ({
+      'Serial Number': row.serialNumber,
+      'Municipality': row.municipalityName,
+      'Title Type': row.titleType,
+      'Subtype': row.subtype || '',
+      'Beneficiary Name': row.beneficiaryName,
+      'Lot Number': row.lotNumber,
+      'Area (sqm)': row.area,
+      'Status': row.status,
+      'Date Issued': row.dateIssued || '',
+      'Date Registered': row.dateRegistered || '',
+      'Date Received': row.dateReceived || '',
+      'Date Distributed': row.dateDistributed || '',
+      'Notes': row.notes || '',
+      'Mother CCLOA No.': row.mother_ccloa_no || '',
+      'Title No.': row.title_no || ''
+    }));
+
+    try {
+      const buffer = generateExcel(excelData, 'Land Titles');
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=land_titles.xlsx');
+      res.send(buffer);
+    } catch (excelErr) {
+      res.status(500).json({ error: 'Failed to generate Excel file' });
+    }
+  });
+});
+
 // Get titles for a municipality with pagination and filters
 app.get('/api/titles/:municipalityId', (req, res) => {
   const { municipalityId } = req.params;
@@ -610,7 +662,11 @@ app.get('/api/titles/:municipalityId', (req, res) => {
     params.push(status);
   }
 
-  if (type !== 'all') {
+  if (type === 'SPLIT') {
+    whereConditions.push("titleType IN ('SPLIT', 'TCT-CLOA', 'TCT-CLOA (Legacy)')");
+  } else if (type === 'Regular') {
+    whereConditions.push("titleType IN ('Regular', 'Mother CCLOA', 'TCT-EP', 'TCT-EP (Legacy)')");
+  } else if (type !== 'all') {
     whereConditions.push("titleType = ?");
     params.push(type);
   }
@@ -1031,6 +1087,10 @@ app.post('/api/login', (req, res) => {
 });
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+if (require.main === module) {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running at http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
