@@ -6,7 +6,7 @@
 - [x] Task: Create Google Sheets service utility (02dbb21)
     - [ ] Implement service account authentication logic
     - [ ] Create function to fetch raw rows from a Sheet ID and Range
-- [ ] Task: Implement Sync Logic
+- [x] Task: Implement Sync Logic (240d52d)
     - [ ] Create logic to map spreadsheet columns to Title database fields
     - [ ] Implement "Upsert" logic (Update if serial number exists, otherwise Insert)
 - [ ] Task: Create Sync Endpoints
