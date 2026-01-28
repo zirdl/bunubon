@@ -22,7 +22,7 @@ To provide a centralized and transparent digital system for tracking land titles
 - **Municipality Dashboard:** provincial and municipality-level progress visualization.
 - **Structured Title Management:** Validation-heavy forms to ensure data is clean before it enters the system.
 - **Checkpoint-Based Tracking:** A clear "kanban-style" or list view of where each title sits in the administrative pipeline.
-- **Cloud Spreadsheet Sync (The Bridge):** A planned feature to import/export data to familiar tools, reducing the "fear" of a hard transition.
+- **Cloud Spreadsheet Sync (The Bridge):** Export functionality to Excel (.xlsx) and CSV is implemented, providing a reliable bridge for staff transitioning from manual spreadsheets.
 - **User Management & Security:** Secure, role-based access control to ensure that only authorized personnel can view or modify sensitive land title data.
 
 ## Future Roadmap
