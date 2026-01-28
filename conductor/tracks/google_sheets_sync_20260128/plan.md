@@ -2,7 +2,7 @@
 
 ## Phase 1: Backend Infrastructure & API
 
-- [ ] Task: Install `googleapis` in the backend
+- [x] Task: Install `googleapis` in the backend (6d0c864)
 - [ ] Task: Create Google Sheets service utility
     - [ ] Implement service account authentication logic
     - [ ] Create function to fetch raw rows from a Sheet ID and Range
