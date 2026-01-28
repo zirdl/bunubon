@@ -13,6 +13,5 @@
 
 ## Phase 2: Frontend Implementation
 
-- [x] Task: Add Export function to the API service (31b5f21)
-- [x] Task: Add "Export to Excel" button to the Titles Page (31b5f21)
+- [x] Task: Implement Excel export on the dedicated Export page (424c19c)
 - [ ] Task: Conductor - User Manual Verification 'Frontend Implementation' (Protocol in workflow.md)
