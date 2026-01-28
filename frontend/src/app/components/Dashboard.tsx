@@ -13,6 +13,10 @@ import {
   Download,
   PlusCircle,
   Database,
+  RefreshCw,
+  X,
+  ArrowRight,
+  Check,
 } from "lucide-react";
 import {
   BarChart,
@@ -42,6 +46,19 @@ interface DashboardProps {
 // Use relative path to ensure it works when accessed from any device on the network
 const API_BASE_URL = "/api";
 
+const SYSTEM_FIELDS = [
+  { key: 'serialNumber', label: 'Serial Number' },
+  { key: 'titleType', label: 'Title Type' },
+  { key: 'subtype', label: 'Subtype' },
+  { key: 'beneficiaryName', label: 'Beneficiary Name' },
+  { key: 'lotNumber', label: 'Lot Number' },
+  { key: 'area', label: 'Area (sqm)' },
+  { key: 'status', label: 'Status' },
+  { key: 'dateIssued', label: 'Date Issued' },
+  { key: 'notes', label: 'Notes' },
+  { key: 'municipalityName', label: 'Municipality' },
+];
+
 export function Dashboard({
   username,
   userRole,
@@ -53,10 +70,79 @@ export function Dashboard({
   const [showTitleForm, setShowTitleForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
+  // Sync States
+  const [showSyncConfig, setShowSyncModal] = useState(false);
+  const [sheetId, setSheetId] = useState('');
+  const [range, setRange] = useState('Sheet1!A1:Z100');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [syncResults, setSyncResults] = useState<{ inserted: number; updated: number; errors: string[] } | null>(null);
+
   // Filter States
   const [filterType, setFilterType] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
+
+  const handlePreview = async () => {
+    if (!sheetId) {
+      alert('Please enter a Google Sheet ID');
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const mapping: Record<string, string> = {};
+      SYSTEM_FIELDS.forEach(field => {
+        mapping[field.label] = field.key;
+      });
+
+      const response = await fetch(`${API_BASE_URL}/sync/google-sheets/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetId, range, mapping }),
+      });
+
+      if (!response.ok) throw new Error('Preview failed');
+      const result = await response.json();
+      setPreviewData(result.data);
+      setShowSyncModal(false);
+      setShowPreview(true);
+    } catch (error) {
+      console.error('Sync preview error:', error);
+      alert('Failed to fetch preview. Ensure the sheet is shared with the service account.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleConfirmSync = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/sync/google-sheets/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titles: previewData }),
+      });
+
+      if (!response.ok) throw new Error('Sync failed');
+      const result = await response.json();
+      setSyncResults(result);
+      setShowPreview(false);
+      
+      // Refresh dashboard data
+      const muniResponse = await fetch(`${API_BASE_URL}/municipalities`);
+      if (muniResponse.ok) {
+        const data = await muniResponse.json();
+        setMunicipalities(data);
+      }
+    } catch (error) {
+      console.error('Sync confirmation error:', error);
+      alert('Failed to synchronize data.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Load data from API on mount
   useEffect(() => {
@@ -464,6 +550,16 @@ export function Dashboard({
                         <div className="text-xs opacity-90">Migrate data from SharePoint/Excel</div>
                       </div>
                     </button>
+                    <button
+                      onClick={() => setShowSyncModal(true)}
+                      className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-md"
+                    >
+                      <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                      <div className="text-left">
+                        <div className="font-semibold">Sync Google Sheets</div>
+                        <div className="text-xs opacity-90">Pull live data from shared sheets</div>
+                      </div>
+                    </button>
                   </>
                 ) : (
                   <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
@@ -472,6 +568,26 @@ export function Dashboard({
                   </div>
                 )}
               </div>
+              
+              {/* Sync Results Alert */}
+              {syncResults && (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-800 uppercase">Sync Successful</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-700 leading-tight">
+                    {syncResults.inserted} new records, {syncResults.updated} updated.
+                  </p>
+                  <button 
+                    onClick={() => setSyncResults(null)}
+                    className="mt-2 text-[10px] font-bold text-emerald-700 underline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
               <div className="mt-auto p-4 bg-gray-50 rounded-xl border border-gray-100">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="w-4 h-4 text-amber-600" />
@@ -504,6 +620,131 @@ export function Dashboard({
               window.location.reload();
             }}
           />
+        )}
+
+        {/* Sync Config Modal */}
+        {showSyncConfig && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 flex flex-col">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-purple-50">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-purple-600" />
+                  Google Sheets Sync
+                </h2>
+                <button onClick={() => setShowSyncModal(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Google Sheet ID</label>
+                  <input 
+                    type="text"
+                    value={sheetId}
+                    onChange={(e) => setSheetId(e.target.value)}
+                    placeholder="e.g. 1AbC...928z"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Range</label>
+                  <input 
+                    type="text"
+                    value={range}
+                    onChange={(e) => setRange(e.target.value)}
+                    placeholder="Sheet1!A1:Z100"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg flex gap-3">
+                  <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-blue-800 leading-normal">
+                    Ensure the sheet is shared with: <br/>
+                    <span className="font-mono font-bold select-all">bunubon@gen-lang-client-0062847344.iam.gserviceaccount.com</span>
+                  </p>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowSyncModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePreview}
+                  disabled={isSyncing || !sheetId}
+                  className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  Preview Data
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Preview Modal */}
+        {showPreview && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+            <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-purple-50">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <RefreshCw className="w-5 h-5 text-purple-600" />
+                    Sync Preview
+                  </h2>
+                  <p className="text-sm text-gray-500">{previewData.length} records found in Google Sheet</p>
+                </div>
+                <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-6 text-sm">
+                <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        {SYSTEM_FIELDS.map(f => (
+                          <th key={f.key} className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-200 whitespace-nowrap">
+                            {f.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.map((row, i) => (
+                        <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                          {SYSTEM_FIELDS.map(f => (
+                            <td key={f.key} className="px-4 py-3 text-xs text-gray-600 truncate max-w-[150px]">
+                              {row[f.key] || <span className="text-gray-300 italic">empty</span>}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-6 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSync}
+                  disabled={isSyncing}
+                  className="flex items-center gap-2 px-8 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md font-bold disabled:opacity-50"
+                >
+                  {isSyncing ? 'Syncing...' : 'Confirm Sync & Save'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
