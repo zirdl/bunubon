@@ -34,8 +34,8 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Input Validation' (Protocol in workflow.md) ffd5c2c
 
 ## Phase 4: Final Security Audit & Cleanup
-- [ ] Task: Remove Legacy JWT Logic
-    - [ ] Audit `server.js` and frontend for any remaining JWT code
-- [ ] Task: Environment Variable Enforcement
-    - [ ] Ensure `SESSION_SECRET` is added to `.env`
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Audit' (Protocol in workflow.md)
+- [x] Task: Remove Legacy JWT Logic 0db5a94
+    - [x] Audit `server.js` and frontend for any remaining JWT code
+- [x] Task: Environment Variable Enforcement 0db5a94
+    - [x] Ensure `SESSION_SECRET` is added to `.env`
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Final Audit' (Protocol in workflow.md) 0db5a94
