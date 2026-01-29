@@ -27,4 +27,5 @@
 ## Infrastructure & Tooling
 - **Package Management:** npm (with Workspaces)
 - **Concurrency:** `concurrently` (for running dev servers)
+- **Initialization:** Standalone setup script (`backend/scripts/setup.js`)
 - **Version Control:** Git
