@@ -6,16 +6,35 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const app = express();
 const port = process.env.PORT || 5000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback_session_secret_for_dev';
 
 // Middleware
+app.use(helmet()); // Sets various security headers
 app.use(cors({
   origin: true, // In production, replace with specific frontend URL
   credentials: true
 }));
 app.use(express.json());
+
+// Rate Limiting
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per windowMs
+  message: { error: 'Too many login attempts, please try again after 15 minutes' }
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/login', loginLimiter);
 
 // Session Configuration
 app.use(session({
@@ -528,6 +547,12 @@ app.post('/api/sync/google-sheets/confirm', async (req, res) => {
   try {
     res.json(await syncTitles(db, req.body.titles));
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(port, '0.0.0.0', () => console.log(`Server running at http://localhost:${port}`));
