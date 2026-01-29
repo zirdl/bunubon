@@ -3,15 +3,15 @@
 ## Phase 1: Session Management & Auth Transition
 - [x] Task: Install session management and security dependencies a086783
     - [ ] Run `npm install express-session connect-sqlite3 helmet express-rate-limit express-validator` in `backend/`
-- [ ] Task: Transition Backend to Session-based Authentication
-    - [ ] Configure `express-session` with `connect-sqlite3` for persistence
-    - [ ] Update `login` route to initialize server-side session
-    - [ ] Create `logout` route to destroy session and clear cookies
-    - [ ] Replace `authenticateToken` middleware with `authenticateSession`
-- [ ] Task: Update Frontend for Cookie-based Auth
-    - [ ] Remove manual JWT token handling from `apiFetch` and `localStorage`
-    - [ ] Update `App.tsx` login handler to rely on session state
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Session Management' (Protocol in workflow.md)
+- [x] Task: Transition Backend to Session-based Authentication 0db5a94
+    - [x] Configure `express-session` with `connect-sqlite3` for persistence
+    - [x] Update `login` route to initialize server-side session
+    - [x] Create `logout` route to destroy session and clear cookies
+    - [x] Replace `authenticateToken` middleware with `authenticateSession`
+- [x] Task: Update Frontend for Cookie-based Auth 0db5a94
+    - [x] Remove manual JWT token handling from `apiFetch` and `localStorage`
+    - [x] Update `App.tsx` login handler to rely on session state
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Session Management' (Protocol in workflow.md) 0db5a94
 
 ## Phase 2: Security Hardening (Middleware)
 - [ ] Task: Implement Global Security Headers
