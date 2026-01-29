@@ -11,10 +11,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Robust Environment & Setup' (Protocol in workflow.md) 72d2a62
 
 ## Phase 2: Authentication Reliability
-- [ ] Task: Automatic 'admin' Hash Migration
-    - [ ] Write failing test verifying SHA-256 hash is upgraded to Bcrypt on startup
-    - [ ] Implement migration logic in initialization sequence
-- [ ] Task: Logging & Final Verification
-    - [ ] Standardize and improve initialization console output
-    - [ ] Verify successful login with `admin`/`admin123`
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Authentication Reliability' (Protocol in workflow.md)
+- [x] Task: Automatic 'admin' Hash Migration 72d2a62
+    - [x] Write failing test verifying SHA-256 hash is upgraded to Bcrypt on startup
+    - [x] Implement migration logic in initialization sequence
+- [x] Task: Logging & Final Verification 72d2a62
+    - [x] Standardize and improve initialization console output
+    - [x] Verify successful login with `admin`/`admin123`
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Authentication Reliability' (Protocol in workflow.md) 72d2a62
