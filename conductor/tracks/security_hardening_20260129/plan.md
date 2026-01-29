@@ -25,13 +25,13 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Security Hardening' (Protocol in workflow.md) 81a8412
 
 ## Phase 3: Input Validation & RBAC Enforcement
-- [ ] Task: Implement Request Validation
-    - [ ] Define validation schemas using `express-validator` for User routes
-    - [ ] Define validation schemas for Title and Municipality routes
-- [ ] Task: Strict RBAC Audit
-    - [ ] Ensure all DELETE and POST/PUT (User) routes are restricted to 'Admin'
-    - [ ] Ensure 'Encoder' can only access Title/Municipality write operations
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Input Validation' (Protocol in workflow.md)
+- [x] Task: Implement Request Validation ffd5c2c
+    - [x] Define validation schemas using `express-validator` for User routes
+    - [x] Define validation schemas for Title and Municipality routes
+- [x] Task: Strict RBAC Audit ffd5c2c
+    - [x] Ensure all DELETE and POST/PUT (User) routes are restricted to 'Admin'
+    - [x] Ensure 'Encoder' can only access Title/Municipality write operations
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Input Validation' (Protocol in workflow.md) ffd5c2c
 
 ## Phase 4: Final Security Audit & Cleanup
 - [ ] Task: Remove Legacy JWT Logic
