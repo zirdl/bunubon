@@ -14,15 +14,15 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Session Management' (Protocol in workflow.md) 0db5a94
 
 ## Phase 2: Security Hardening (Middleware)
-- [ ] Task: Implement Global Security Headers
-    - [ ] Integrate `helmet` with custom CSP if necessary
-- [ ] Task: Implement Rate Limiting
-    - [ ] Apply strict limits to `/api/login`
-    - [ ] Apply general limits to all `/api` routes
-- [ ] Task: Implement Robust Error Handling
-    - [ ] Create a global error middleware to sanitize error responses
-    - [ ] Replace raw `res.status(500).json({ error: err.message })` with sanitized messages
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Security Hardening' (Protocol in workflow.md)
+- [x] Task: Implement Global Security Headers 81a8412
+    - [x] Integrate `helmet` with custom CSP if necessary
+- [x] Task: Implement Rate Limiting 81a8412
+    - [x] Apply strict limits to `/api/login`
+    - [x] Apply general limits to all `/api` routes
+- [x] Task: Implement Robust Error Handling 81a8412
+    - [x] Create a global error middleware to sanitize error responses
+    - [x] Replace raw `res.status(500).json({ error: err.message })` with sanitized messages
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Security Hardening' (Protocol in workflow.md) 81a8412
 
 ## Phase 3: Input Validation & RBAC Enforcement
 - [ ] Task: Implement Request Validation
