@@ -13,6 +13,12 @@
 - **Framework:** Express.js
 - **Language:** JavaScript
 - **API Style:** RESTful
+- **Authentication:** Session-based (express-session)
+- **Security:**
+  - Helmet (Security headers)
+  - Express Rate Limit
+  - Express Validator (Input sanitization)
+  - Bcrypt (Password hashing)
 
 ## Database
 - **Engine:** SQLite
