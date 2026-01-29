@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { Sidebar } from './components/Sidebar';
+import { apiFetch } from './utils/api';
 
 // Lazy loaded components
 const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
@@ -12,7 +13,6 @@ const ExportData = lazy(() => import('./components/ExportData').then(module => (
 const BackupRestore = lazy(() => import('./components/BackupRestore').then(module => ({ default: module.BackupRestore })));
 const TitlesList = lazy(() => import('./components/TitlesList').then(module => ({ default: module.TitlesList })));
 
-// Use relative path to ensure it works when accessed from any device on the network
 const API_BASE_URL = '/api';
 
 export default function App() {
@@ -43,6 +43,7 @@ export default function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
+        credentials: 'include',
       });
 
       const data = await response.json();
@@ -65,11 +66,8 @@ export default function App() {
 
   const handleSignUp = async (username: string, password: string, fullName: string, email: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await apiFetch(`/users`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           username,
           password,
@@ -92,12 +90,19 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUsername('');
-    setRole('');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentRole');
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Error during logout:', err);
+    } finally {
+      setIsAuthenticated(false);
+      setUsername('');
+      setRole('');
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('currentRole');
+      navigate('/login');
+    }
   };
 
   if (isLoading) {
@@ -238,7 +243,7 @@ function TitlesListWrapper({ userRole }: { userRole: string }) {
 
   useEffect(() => {
     if (municipalityId) {
-      fetch(`${API_BASE_URL}/municipalities/${municipalityId}`)
+      apiFetch(`/municipalities/${municipalityId}`)
         .then(res => res.json())
         .then(data => setMunicipalityName(data.name))
         .catch(err => console.error(err));
