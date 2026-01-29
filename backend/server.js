@@ -1,4 +1,15 @@
 require('dotenv').config();
+
+// Environment Validation
+const requiredEnv = ['SESSION_SECRET'];
+const missingEnv = requiredEnv.filter(env => !process.env[env]);
+
+if (missingEnv.length > 0) {
+  console.error(`CRITICAL ERROR: Missing required environment variables: ${missingEnv.join(', ')}`);
+  console.error('Please check your .env file. Application shutting down.');
+  process.exit(1);
+}
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -55,7 +66,7 @@ const validate = (validations) => {
 app.use(session({
   store: new SQLiteStore({
     db: 'sessions.db',
-    dir: './backend'
+    dir: __dirname
   }),
   secret: SESSION_SECRET,
   resave: false,
@@ -69,148 +80,13 @@ app.use(session({
 }));
 
 // Initialize SQLite database
-
 const dbPath = path.join(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database');
-    // Create tables if they don't exist
-    db.serialize(() => {
-      // Municipalities table
-      db.run(`CREATE TABLE IF NOT EXISTS municipalities (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        tctCloaTotal INTEGER DEFAULT 0,
-        tctCloaProcessed INTEGER DEFAULT 0,
-        tctEpTotal INTEGER DEFAULT 0,
-        tctEpProcessed INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'active',
-        notes TEXT,
-        district INTEGER DEFAULT 1
-      )`);
-
-      // Municipalities checkpoints table
-      db.run(`CREATE TABLE IF NOT EXISTS municipality_checkpoints (
-        id TEXT PRIMARY KEY,
-        municipality_id TEXT,
-        label TEXT NOT NULL,
-        completed BOOLEAN DEFAULT 0,
-        FOREIGN KEY (municipality_id) REFERENCES municipalities (id)
-      )`);
-
-      // Titles table
-      db.run(`CREATE TABLE IF NOT EXISTS titles (
-        id TEXT PRIMARY KEY,
-        municipality_id TEXT,
-        serialNumber TEXT NOT NULL,
-        titleType TEXT NOT NULL,
-        subtype TEXT,
-        beneficiaryName TEXT NOT NULL,
-        lotNumber TEXT NOT NULL,
-        barangayLocation TEXT,
-        area REAL DEFAULT 0,
-        status TEXT DEFAULT 'on-hand',
-        dateIssued TEXT,
-        dateRegistered TEXT,
-        dateReceived TEXT,
-        dateDistributed TEXT,
-        notes TEXT,
-        mother_ccloa_no TEXT,
-        title_no TEXT,
-        FOREIGN KEY (municipality_id) REFERENCES municipalities (id)
-      )`);
-
-      // Create indexes for faster searching and filtering
-      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_municipality ON titles(municipality_id)`);
-      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_serial ON titles(serialNumber)`);
-      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_beneficiary ON titles(beneficiaryName)`);
-      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_status ON titles(status)`);
-      db.run(`CREATE INDEX IF NOT EXISTS idx_titles_type ON titles(titleType)`);
-
-      // Users table
-      db.run(`CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT DEFAULT 'user',
-        fullName TEXT DEFAULT '',
-        email TEXT DEFAULT '',
-        status TEXT DEFAULT 'Active'
-      )`);
-
-      // Insert default user if table is empty
-      db.get("SELECT id FROM users WHERE username = 'admin'", (err, row) => {
-        if (!row) {
-          const crypto = require('crypto');
-          const defaultPassword = 'admin123'; // Default password, should be changed in production
-          const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-
-          db.run("INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [crypto.randomUUID(), 'admin', hashedPassword, 'Admin', 'Administrator', 'admin@dar.gov.ph', 'Active'], (err) => {
-              if (err) {
-                console.error('Error creating default user:', err);
-              } else {
-                console.log('Created default admin user');
-              }
-            });
-        }
-      });
-
-      // Insert predefined municipalities if table is empty
-      db.get("SELECT id FROM municipalities LIMIT 1", (err, row) => {
-        if (!row) {
-          const predefinedMunicipalities = [
-            { id: '1', name: 'Agoo', district: 2, notes: '' },
-            { id: '2', name: 'Aringay', district: 2, notes: '' },
-            { id: '3', name: 'Bacnotan', district: 1, notes: '' },
-            { id: '4', name: 'Bagulin', district: 2, notes: '' },
-            { id: '5', name: 'Balaoan', district: 1, notes: '' },
-            { id: '6', name: 'Bangar', district: 1, notes: '' },
-            { id: '7', name: 'Bauang', district: 2, notes: '' },
-            { id: '8', name: 'Burgos', district: 2, notes: '' },
-            { id: '9', name: 'Caba', district: 2, notes: '' },
-            { id: '10', name: 'Luna', district: 1, notes: '' },
-            { id: '11', name: 'Naguilian', district: 2, notes: '' },
-            { id: '12', name: 'Pugo', district: 2, notes: '' },
-            { id: '13', name: 'Rosario', district: 2, notes: '' },
-            { id: '14', name: 'San Gabriel', district: 1, notes: '' },
-            { id: '15', name: 'San Juan', district: 1, notes: '' },
-            { id: '16', name: 'Santol', district: 1, notes: '' },
-            { id: '17', name: 'Santo Tomas', district: 2, notes: '' },
-            { id: '18', name: 'Sudipen', district: 1, notes: '' },
-            { id: '19', name: 'Tubao', district: 2, notes: '' },
-            { id: '20', name: 'San Fernando', district: 1, notes: '' },
-          ];
-
-          const insertMuniStmt = db.prepare(`
-            INSERT INTO municipalities (id, name, tctCloaTotal, tctCloaProcessed, tctEpTotal, tctEpProcessed, status, notes, district)
-            VALUES (?, ?, 0, 0, 0, 0, 'active', ?, ?)
-          `);
-
-          predefinedMunicipalities.forEach(muni => {
-            insertMuniStmt.run([muni.id, muni.name, muni.notes, muni.district]);
-          });
-
-          insertMuniStmt.finalize();
-
-          const insertCheckpointStmt = db.prepare(`
-            INSERT INTO municipality_checkpoints (id, municipality_id, label, completed)
-            VALUES (?, ?, ?, ?)
-          `);
-
-          predefinedMunicipalities.forEach(muni => {
-            insertCheckpointStmt.run([`${muni.id}-1`, muni.id, 'Initial Documentation Completed', 0]);
-            insertCheckpointStmt.run([`${muni.id}-2`, muni.id, 'Final Processing & Release', 0]);
-          });
-
-          insertCheckpointStmt.finalize();
-          console.log('Inserted 20 predefined municipalities of La Union');
-        }
-      });
-    });
+    process.exit(1);
   }
+  console.log('Connected to SQLite database');
 });
 
 // Authentication Middleware
