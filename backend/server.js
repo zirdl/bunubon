@@ -8,6 +8,7 @@ const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
 const app = express();
 const port = process.env.PORT || 5000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback_session_secret_for_dev';
@@ -36,6 +37,20 @@ const loginLimiter = rateLimit({
 app.use('/api/', generalLimiter);
 app.use('/api/login', loginLimiter);
 
+// Validation Middleware
+const validate = (validations) => {
+  return async (req, res, next) => {
+    await Promise.all(validations.map(validation => validation.run(req)));
+
+    const errors = validationResult(req);
+    if (errors.isEmpty()) {
+      return next();
+    }
+
+    res.status(400).json({ errors: errors.array() });
+  };
+};
+
 // Session Configuration
 app.use(session({
   store: new SQLiteStore({
@@ -54,6 +69,7 @@ app.use(session({
 }));
 
 // Initialize SQLite database
+
 const dbPath = path.join(__dirname, 'database.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -449,7 +465,17 @@ app.get('/api/titles/:municipalityId', (req, res) => {
 });
 
 // Create title
-app.post('/api/titles/:municipalityId', (req, res) => {
+const titleValidation = [
+  body('serialNumber').trim().notEmpty().escape(),
+  body('titleType').isIn(['SPLIT', 'Regular', 'TCT-CLOA', 'TCT-EP', 'Mother CCLOA', 'TCT-CLOA (Legacy)', 'TCT-EP (Legacy)']),
+  body('beneficiaryName').trim().notEmpty().escape(),
+  body('lotNumber').trim().notEmpty().escape(),
+  body('area').isNumeric(),
+  body('status').isIn(['on-hand', 'processing', 'released', 'Pending', 'Processed', 'Released']),
+  body('municipality_id').optional().escape()
+];
+
+app.post('/api/titles/:municipalityId', authorizeRole(['Admin', 'Encoder']), validate(titleValidation), (req, res) => {
   const { municipalityId } = req.params;
   const { id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
   const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
@@ -460,7 +486,7 @@ app.post('/api/titles/:municipalityId', (req, res) => {
 });
 
 // Update title
-app.put('/api/titles/:municipalityId/:titleId', (req, res) => {
+app.put('/api/titles/:municipalityId/:titleId', authorizeRole(['Admin', 'Encoder']), validate(titleValidation), (req, res) => {
   const { municipalityId, titleId } = req.params;
   const { serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
   const sql = `UPDATE titles SET serialNumber = ?, titleType = ?, subtype = ?, beneficiaryName = ?, lotNumber = ?, area = ?, status = ?, dateIssued = ?, dateRegistered = ?, dateReceived = ?, dateDistributed = ?, notes = ?, mother_ccloa_no = ?, title_no = ? WHERE id = ? AND municipality_id = ?`;
@@ -471,7 +497,7 @@ app.put('/api/titles/:municipalityId/:titleId', (req, res) => {
 });
 
 // Delete title
-app.delete('/api/titles/:municipalityId/:titleId', (req, res) => {
+app.delete('/api/titles/:municipalityId/:titleId', authorizeRole(['Admin']), (req, res) => {
   const { municipalityId, titleId } = req.params;
   db.run(`DELETE FROM titles WHERE id = ? AND municipality_id = ?`, [titleId, municipalityId], function(err) {
     if (err) return res.status(500).json({ error: err.message });
@@ -487,7 +513,18 @@ app.get('/api/users', authorizeRole(['Admin']), (req, res) => {
   });
 });
 
-app.post('/api/users', authorizeRole(['Admin']), async (req, res) => {
+const userValidation = [
+  body('username').trim().isLength({ min: 3 }).escape(),
+  body('password').optional({ checkFalsy: true }).isLength({ min: 6 }),
+  body('role').isIn(['Admin', 'Encoder', 'Viewer']),
+  body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail(),
+  body('fullName').optional().trim().escape()
+];
+
+app.post('/api/users', authorizeRole(['Admin']), validate([
+  ...userValidation,
+  body('password').isLength({ min: 6 }) // Password required for new users
+]), async (req, res) => {
   const { username, password, role, fullName, email } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const crypto = require('crypto');
@@ -497,7 +534,7 @@ app.post('/api/users', authorizeRole(['Admin']), async (req, res) => {
   });
 });
 
-app.put('/api/users/:id', authorizeRole(['Admin']), async (req, res) => {
+app.put('/api/users/:id', authorizeRole(['Admin']), validate(userValidation), async (req, res) => {
   const { id } = req.params;
   const { username, role, fullName, email, status, password } = req.body;
   let sql = `UPDATE users SET username = ?, role = ?, fullName = ?, email = ?, status = ?`;
