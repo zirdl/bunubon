@@ -57,10 +57,39 @@ db.serialize(() => {
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role TEXT DEFAULT 'user',
+    role TEXT DEFAULT 'VIEWER',
     fullName TEXT DEFAULT '',
     email TEXT DEFAULT '',
-    status TEXT DEFAULT 'Active'
+    contactNumber TEXT DEFAULT '',
+    status TEXT DEFAULT 'ACTIVE',
+    mustChangePassword BOOLEAN DEFAULT 0
+  )`);
+
+  // Migration for existing users table
+  const columnsToAdd = [
+    { name: 'contactNumber', type: 'TEXT DEFAULT \'\'' },
+    { name: 'mustChangePassword', type: 'BOOLEAN DEFAULT 0' }
+  ];
+
+  columnsToAdd.forEach(col => {
+    db.run(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`, (err) => {
+      if (err) {
+        if (!err.message.includes('duplicate column name')) {
+          console.error(`Error adding column ${col.name}:`, err.message);
+        }
+      } else {
+        console.log(`Added column ${col.name} to users table.`);
+      }
+    });
+  });
+
+  db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    action TEXT NOT NULL,
+    details TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES users (id)
   )`);
 
   // 2. Create Indexes
@@ -76,7 +105,7 @@ db.serialize(() => {
       console.log('Default admin user not found. Creating...');
       const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
       db.run("INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [crypto.randomUUID(), 'admin', hashedPassword, 'Admin', 'Administrator', 'admin@dar.gov.ph', 'Active'], (err) => {
+        [crypto.randomUUID(), 'admin', hashedPassword, 'ADMIN', 'Administrator', 'admin@dar.gov.ph', 'ACTIVE'], (err) => {
           if (err) console.error('Failed to create admin:', err.message);
           else console.log('Successfully created default admin user.');
         });
@@ -86,12 +115,14 @@ db.serialize(() => {
       if (isSha256) {
         console.log('Outdated SHA-256 hash detected for admin. Upgrading to Bcrypt...');
         const newHash = bcrypt.hashSync(defaultPassword, 10);
-        db.run("UPDATE users SET password = ? WHERE username = 'admin'", [newHash], (err) => {
+        db.run("UPDATE users SET password = ?, role = 'ADMIN', status = 'ACTIVE' WHERE username = 'admin'", [newHash], (err) => {
           if (err) console.error('Failed to upgrade hash:', err.message);
           else console.log('Successfully upgraded admin password to Bcrypt.');
         });
       } else {
         console.log('Admin user exists with secure hash.');
+        // Ensure role is ADMIN uppercase
+        db.run("UPDATE users SET role = 'ADMIN', status = 'ACTIVE' WHERE username = 'admin' AND (role = 'Admin' OR status = 'Active')");
       }
     }
   });
@@ -138,6 +169,6 @@ db.serialize(() => {
   });
 });
 
-db.close(() => {
-  console.log('--- Initialization Complete ---');
-});
+// Removed explicit db.close() to avoid SQLITE_MISUSE when callbacks are still pending.
+// The process will exit naturally when all scheduled operations are complete.
+console.log('--- Initialization Process Started ---');

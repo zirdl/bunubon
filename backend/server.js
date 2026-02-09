@@ -94,13 +94,14 @@ const authenticateSession = (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ error: 'Access denied. Please log in.' });
   }
+  req.user = req.session.user;
   next();
 };
 
 // Authorization Middleware
-const authorizeRole = (roles) => {
+const checkRole = (roles) => {
   return (req, res, next) => {
-    if (!req.session.user || !roles.includes(req.session.user.role)) {
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
     }
     next();
@@ -120,11 +121,11 @@ app.post('/api/login', (req, res) => {
         req.session.user = {
           id: user.id,
           username: user.username,
-          role: user.role
+          role: user.role.toUpperCase()
         };
         res.json({
           success: true,
-          user: { id: user.id, username: user.username, role: user.role },
+          user: { id: user.id, username: user.username, role: user.role.toUpperCase() },
           message: 'Login successful'
         });
       } else {
@@ -237,7 +238,7 @@ app.get('/api/municipalities/:id', (req, res) => {
 });
 
 // Create municipality
-app.post('/api/municipalities', authorizeRole(['Admin']), (req, res) => {
+app.post('/api/municipalities', checkRole(['ADMIN']), (req, res) => {
   const { id, name, status, notes, district, checkpoints } = req.body;
   const sql = `INSERT INTO municipalities (id, name, status, notes, district) VALUES (?, ?, ?, ?, ?)`;
   db.run(sql, [id, name, status, notes, district], function(err) {
@@ -252,7 +253,7 @@ app.post('/api/municipalities', authorizeRole(['Admin']), (req, res) => {
 });
 
 // Update municipality
-app.put('/api/municipalities/:id', authorizeRole(['Admin']), (req, res) => {
+app.put('/api/municipalities/:id', checkRole(['ADMIN']), (req, res) => {
   const { id } = req.params;
   const { name, status, notes, district, checkpoints } = req.body;
   db.run(`UPDATE municipalities SET name = ?, status = ?, notes = ?, district = ? WHERE id = ?`, [name, status, notes, district, id], function(err) {
@@ -269,7 +270,7 @@ app.put('/api/municipalities/:id', authorizeRole(['Admin']), (req, res) => {
 });
 
 // Delete municipality
-app.delete('/api/municipalities/:id', authorizeRole(['Admin']), (req, res) => {
+app.delete('/api/municipalities/:id', checkRole(['ADMIN']), (req, res) => {
   const { id } = req.params;
   if (parseInt(id) <= 20) return res.status(403).json({ error: 'Cannot delete predefined municipalities' });
   db.serialize(() => {
@@ -346,12 +347,102 @@ const titleValidation = [
   body('titleType').isIn(['SPLIT', 'Regular', 'TCT-CLOA', 'TCT-EP', 'Mother CCLOA', 'TCT-CLOA (Legacy)', 'TCT-EP (Legacy)']),
   body('beneficiaryName').trim().notEmpty().escape(),
   body('lotNumber').trim().notEmpty().escape(),
+  body('barangayLocation').optional().trim().escape(),
   body('area').isNumeric(),
   body('status').isIn(['on-hand', 'processing', 'released', 'Pending', 'Processed', 'Released']),
   body('municipality_id').optional().escape()
 ];
 
-app.post('/api/titles/:municipalityId', authorizeRole(['Admin', 'Encoder']), validate(titleValidation), (req, res) => {
+app.post('/api/titles/batch', checkRole(['ADMIN', 'EDITOR']), async (req, res) => {
+  const { titles } = req.body;
+  if (!Array.isArray(titles)) {
+    return res.status(400).json({ error: 'Invalid data format. Expected an array of titles.' });
+  }
+
+  const crypto = require('crypto');
+  let successCount = 0;
+  let failedCount = 0;
+  const errors = [];
+
+  // Get all municipalities to map names to IDs
+  db.all('SELECT id, name FROM municipalities', [], (err, municipalities) => {
+    if (err) return res.status(500).json({ error: 'Failed to fetch municipalities' });
+
+    const muniMap = {};
+    municipalities.forEach(m => {
+      muniMap[m.name.toLowerCase()] = m.id;
+    });
+
+    const stmt = db.prepare(`
+      INSERT INTO titles (
+        id, municipality_id, serialNumber, titleType, subtype, 
+        beneficiaryName, lotNumber, barangayLocation, area, status, 
+        dateIssued, dateRegistered, dateReceived, dateDistributed, 
+        notes, mother_ccloa_no, title_no
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    let processed = 0;
+    if (titles.length === 0) {
+      return res.json({ successCount: 0, failedCount: 0, errors: [] });
+    }
+
+    titles.forEach((title, index) => {
+      const muniId = muniMap[title.municipality?.toLowerCase()?.trim()];
+      
+      if (!muniId) {
+        failedCount++;
+        errors.push(`Row ${index + 1}: Municipality "${title.municipality}" not found`);
+        processed++;
+        if (processed === titles.length) finalize();
+        return;
+      }
+
+      const id = crypto.randomUUID();
+      const params = [
+        id,
+        muniId,
+        String(title.serialNumber || ''),
+        title.titleType || 'Regular',
+        title.subtype || '',
+        title.beneficiaryName || '',
+        title.lotNumber || '',
+        title.barangayLocation || '',
+        parseFloat(title.area) || 0,
+        title.status || 'on-hand',
+        title.dateIssued || null,
+        title.dateRegistered || null,
+        title.dateReceived || null,
+        title.dateDistributed || null,
+        title.notes || '',
+        title.mother_ccloa_no || '',
+        title.title_no || ''
+      ];
+
+      stmt.run(params, function(err) {
+        if (err) {
+          failedCount++;
+          errors.push(`Row ${index + 1}: ${err.message}`);
+        } else {
+          successCount++;
+        }
+        processed++;
+        if (processed === titles.length) finalize();
+      });
+    });
+
+    function finalize() {
+      stmt.finalize();
+      res.json({
+        successCount,
+        failedCount,
+        errors
+      });
+    }
+  });
+});
+
+app.post('/api/titles/:municipalityId', checkRole(['ADMIN', 'EDITOR']), validate(titleValidation), (req, res) => {
   const { municipalityId } = req.params;
   const { id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
   const sql = `INSERT INTO titles (id, municipality_id, serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
@@ -362,18 +453,18 @@ app.post('/api/titles/:municipalityId', authorizeRole(['Admin', 'Encoder']), val
 });
 
 // Update title
-app.put('/api/titles/:municipalityId/:titleId', authorizeRole(['Admin', 'Encoder']), validate(titleValidation), (req, res) => {
+app.put('/api/titles/:municipalityId/:titleId', checkRole(['ADMIN', 'EDITOR']), validate(titleValidation), (req, res) => {
   const { municipalityId, titleId } = req.params;
-  const { serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
-  const sql = `UPDATE titles SET serialNumber = ?, titleType = ?, subtype = ?, beneficiaryName = ?, lotNumber = ?, area = ?, status = ?, dateIssued = ?, dateRegistered = ?, dateReceived = ?, dateDistributed = ?, notes = ?, mother_ccloa_no = ?, title_no = ? WHERE id = ? AND municipality_id = ?`;
-  db.run(sql, [serialNumber, titleType, subtype, beneficiaryName, lotNumber, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no, titleId, municipalityId], function(err) {
+  const { serialNumber, titleType, subtype, beneficiaryName, lotNumber, barangayLocation, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no } = req.body;
+  const sql = `UPDATE titles SET serialNumber = ?, titleType = ?, subtype = ?, beneficiaryName = ?, lotNumber = ?, barangayLocation = ?, area = ?, status = ?, dateIssued = ?, dateRegistered = ?, dateReceived = ?, dateDistributed = ?, notes = ?, mother_ccloa_no = ?, title_no = ? WHERE id = ? AND municipality_id = ?`;
+  db.run(sql, [serialNumber, titleType, subtype, beneficiaryName, lotNumber, barangayLocation, area, status, dateIssued, dateRegistered, dateReceived, dateDistributed, notes, mother_ccloa_no, title_no, titleId, municipalityId], function(err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ id: titleId, message: 'Title updated successfully' });
   });
 });
 
 // Delete title
-app.delete('/api/titles/:municipalityId/:titleId', authorizeRole(['Admin']), (req, res) => {
+app.delete('/api/titles/:municipalityId/:titleId', checkRole(['ADMIN']), (req, res) => {
   const { municipalityId, titleId } = req.params;
   db.run(`DELETE FROM titles WHERE id = ? AND municipality_id = ?`, [titleId, municipalityId], function(err) {
     if (err) return res.status(500).json({ error: err.message });
@@ -382,7 +473,16 @@ app.delete('/api/titles/:municipalityId/:titleId', authorizeRole(['Admin']), (re
 });
 
 // User routes
-app.get('/api/users', authorizeRole(['Admin']), (req, res) => {
+app.get('/api/profile', (req, res) => {
+  const { id } = req.user;
+  db.get(`SELECT id, username, role, fullName, email, status FROM users WHERE id = ?`, [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'User not found' });
+    res.json(row);
+  });
+});
+
+app.get('/api/users', checkRole(['ADMIN']), (req, res) => {
   db.all(`SELECT id, username, role, fullName, email, status FROM users ORDER BY username`, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
@@ -392,25 +492,25 @@ app.get('/api/users', authorizeRole(['Admin']), (req, res) => {
 const userValidation = [
   body('username').trim().isLength({ min: 3 }).escape(),
   body('password').optional({ checkFalsy: true }).isLength({ min: 6 }),
-  body('role').isIn(['Admin', 'Encoder', 'Viewer']),
+  body('role').isIn(['ADMIN', 'EDITOR', 'VIEWER']),
   body('email').optional({ checkFalsy: true }).isEmail().normalizeEmail(),
   body('fullName').optional().trim().escape()
 ];
 
-app.post('/api/users', authorizeRole(['Admin']), validate([
+app.post('/api/users', checkRole(['ADMIN']), validate([
   ...userValidation,
   body('password').isLength({ min: 6 }) // Password required for new users
 ]), async (req, res) => {
   const { username, password, role, fullName, email } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const crypto = require('crypto');
-  db.run(`INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, 'Active')`, [crypto.randomUUID(), username, hashedPassword, role, fullName, email], function(err) {
+  db.run(`INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`, [crypto.randomUUID(), username, hashedPassword, role, fullName, email], function(err) {
     if (err) return res.status(400).json({ error: err.message.includes('UNIQUE') ? 'Username exists' : err.message });
     res.status(201).json({ message: 'User created' });
   });
 });
 
-app.put('/api/users/:id', authorizeRole(['Admin']), validate(userValidation), async (req, res) => {
+app.put('/api/users/:id', checkRole(['ADMIN']), validate(userValidation), async (req, res) => {
   const { id } = req.params;
   const { username, role, fullName, email, status, password } = req.body;
   let sql = `UPDATE users SET username = ?, role = ?, fullName = ?, email = ?, status = ?`;
@@ -423,7 +523,7 @@ app.put('/api/users/:id', authorizeRole(['Admin']), validate(userValidation), as
   });
 });
 
-app.delete('/api/users/:id', authorizeRole(['Admin']), (req, res) => {
+app.delete('/api/users/:id', checkRole(['ADMIN']), (req, res) => {
   const { id } = req.params;
   db.get(`SELECT username FROM users WHERE id = ?`, [id], (err, row) => {
     if (row && row.username === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
@@ -437,7 +537,12 @@ app.delete('/api/users/:id', authorizeRole(['Admin']), (req, res) => {
 app.put('/api/users/:id/change-password', async (req, res) => {
   const { id } = req.params;
   const { currentPassword, newPassword } = req.body;
-  if (req.user.id !== id && req.user.role !== 'Admin') return res.status(403).json({ error: 'Forbidden' });
+  
+  // Allow users to change their own password, or Admins to change any password
+  if (req.user.id !== id && !['ADMIN'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
   db.get(`SELECT password FROM users WHERE id = ?`, [id], async (err, user) => {
     if (!user || !(await bcrypt.compare(currentPassword, user.password))) return res.status(401).json({ error: 'Invalid current password' });
     db.run(`UPDATE users SET password = ? WHERE id = ?`, [await bcrypt.hash(newPassword, 10), id], () => res.json({ message: 'Password updated' }));
@@ -468,4 +573,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(port, '0.0.0.0', () => console.log(`Server running at http://localhost:${port}`));
+if (require.main === module) {
+  app.listen(port, '0.0.0.0', () => console.log(`Server running at http://localhost:${port}`));
+}
+
+module.exports = app;

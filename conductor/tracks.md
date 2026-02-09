@@ -12,3 +12,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: Fix default login credentials and implement robust system initialization**
 *Link: [./tracks/fix_default_login_20260129/](./tracks/fix_default_login_20260129/)*
+
+---
+
+- [~] **Track: let's work on the proper user management features**
+*Link: [./tracks/user_management_20260209/](./tracks/user_management_20260209/)*
