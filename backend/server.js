@@ -94,8 +94,16 @@ const authenticateSession = (req, res, next) => {
   if (!req.session.user) {
     return res.status(401).json({ error: 'Access denied. Please log in.' });
   }
-  req.user = req.session.user;
-  next();
+
+  // Verify user is still ACTIVE in database
+  db.get('SELECT status FROM users WHERE id = ?', [req.session.user.id], (err, user) => {
+    if (err || !user || user.status !== 'ACTIVE') {
+      req.session.destroy();
+      return res.status(401).json({ error: 'Account is deactivated or not found.' });
+    }
+    req.user = req.session.user;
+    next();
+  });
 };
 
 // Authorization Middleware
@@ -111,11 +119,14 @@ const checkRole = (roles) => {
 // API Routes - Public
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  const sql = `SELECT id, username, password, role FROM users WHERE username = ?`;
+  const sql = `SELECT id, username, password, role, status FROM users WHERE username = ?`;
 
   db.get(sql, [username], async (err, user) => {
     if (err) return res.status(500).json({ error: 'Internal server error' });
     if (user) {
+      if (user.status !== 'ACTIVE') {
+        return res.status(403).json({ success: false, message: 'Your account has been deactivated.' });
+      }
       const isMatch = await bcrypt.compare(password, user.password);
       if (isMatch) {
         req.session.user = {
@@ -473,6 +484,25 @@ app.delete('/api/titles/:municipalityId/:titleId', checkRole(['ADMIN']), (req, r
 });
 
 // User routes
+const { logAudit } = require('./utils/auditLogger');
+
+app.get('/api/audit-logs', checkRole(['ADMIN']), (req, res) => {
+  const sql = `
+    SELECT al.*, u.username 
+    FROM audit_logs al 
+    LEFT JOIN users u ON al.userId = u.id 
+    ORDER BY al.timestamp DESC 
+    LIMIT 100
+  `;
+  db.all(sql, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows.map(row => ({
+      ...row,
+      details: row.details ? JSON.parse(row.details) : null
+    })));
+  });
+});
+
 app.get('/api/profile', (req, res) => {
   const { id } = req.user;
   db.get(`SELECT id, username, role, fullName, email, status FROM users WHERE id = ?`, [id], (err, row) => {
@@ -504,8 +534,12 @@ app.post('/api/users', checkRole(['ADMIN']), validate([
   const { username, password, role, fullName, email } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const crypto = require('crypto');
-  db.run(`INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`, [crypto.randomUUID(), username, hashedPassword, role, fullName, email], function(err) {
+  const userId = crypto.randomUUID();
+  db.run(`INSERT INTO users (id, username, password, role, fullName, email, status, mustChangePassword) VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', 1)`, 
+    [userId, username, hashedPassword, role, fullName, email], function(err) {
     if (err) return res.status(400).json({ error: err.message.includes('UNIQUE') ? 'Username exists' : err.message });
+    
+    logAudit(db, req.user.id, 'USER_CREATED', { username, role, fullName, email });
     res.status(201).json({ message: 'User created' });
   });
 });
@@ -519,7 +553,30 @@ app.put('/api/users/:id', checkRole(['ADMIN']), validate(userValidation), async 
   sql += ` WHERE id = ?`; params.push(id);
   db.run(sql, params, function(err) {
     if (err) return res.status(500).json({ error: err.message });
+    logAudit(db, req.user.id, 'USER_UPDATED', { id, username, role, status });
     res.json({ message: 'User updated' });
+  });
+});
+
+app.post('/api/users/:id/deactivate', checkRole(['ADMIN']), (req, res) => {
+  const { id } = req.params;
+  db.run(`UPDATE users SET status = 'DEACTIVATED' WHERE id = ?`, [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    logAudit(db, req.user.id, 'USER_DEACTIVATED', { id });
+    res.json({ message: 'User deactivated' });
+  });
+});
+
+app.post('/api/users/:id/reset-password', checkRole(['ADMIN']), async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Valid new password required' });
+  
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  db.run(`UPDATE users SET password = ?, mustChangePassword = 1 WHERE id = ?`, [hashedPassword, id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    logAudit(db, req.user.id, 'PASSWORD_RESET_BY_ADMIN', { id });
+    res.json({ message: 'Password reset successful' });
   });
 });
 
@@ -529,6 +586,7 @@ app.delete('/api/users/:id', checkRole(['ADMIN']), (req, res) => {
     if (row && row.username === 'admin') return res.status(400).json({ error: 'Cannot delete admin' });
     db.run(`DELETE FROM users WHERE id = ?`, [id], function(err) {
       if (err) return res.status(500).json({ error: err.message });
+      logAudit(db, req.user.id, 'USER_DELETED', { id });
       res.json({ message: 'User deleted' });
     });
   });

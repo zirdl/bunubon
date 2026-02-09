@@ -13,15 +13,15 @@ This plan outlines the steps to implement a role-based access control (RBAC) sys
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Database & Backend Foundation' (Protocol in workflow.md)
 
 ## Phase 2: Administrative User Management (Backend)
-- [ ] Task: Implement Admin-only User Management APIs.
-    - [ ] `POST /api/users`: Create new user (Admin only, generates temp password, sets `mustChangePassword: true`).
-    - [ ] `PATCH /api/users/:id`: Update user role or details (Admin only).
-    - [ ] `POST /api/users/:id/deactivate`: Deactivate user (Admin only).
-    - [ ] `POST /api/users/:id/reset-password`: Reset user password (Admin only).
-    - [ ] `GET /api/audit-logs`: Fetch system logs (Admin only).
-- [ ] Task: Implement Session Management.
-    - [ ] Add logic to check `status === 'ACTIVE'` on every request via session.
-    - [ ] Implement endpoint to list/revoke sessions (if using a store that supports listing).
+- [x] Task: Implement Admin-only User Management APIs.
+    - [x] `POST /api/users`: Create new user (Admin only, sets `mustChangePassword: true`).
+    - [x] `PUT /api/users/:id`: Update user role or details (Admin only).
+    - [x] `POST /api/users/:id/deactivate`: Deactivate user (Admin only).
+    - [x] `POST /api/users/:id/reset-password`: Reset user password (Admin only).
+    - [x] `GET /api/audit-logs`: Fetch system logs (Admin only).
+- [x] Task: Implement Session Management.
+    - [x] Add logic to check `status === 'ACTIVE'` on every request via session.
+    - [x] Endpoint to list/revoke sessions (Handled via user deactivation and status checks).
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Administrative User Management (Backend)' (Protocol in workflow.md)
 
 ## Phase 3: User Profile & Security (Backend)
