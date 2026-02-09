@@ -96,12 +96,23 @@ const authenticateSession = (req, res, next) => {
   }
 
   // Verify user is still ACTIVE in database
-  db.get('SELECT status FROM users WHERE id = ?', [req.session.user.id], (err, user) => {
+  db.get('SELECT status, mustChangePassword FROM users WHERE id = ?', [req.session.user.id], (err, user) => {
     if (err || !user || user.status !== 'ACTIVE') {
       req.session.destroy();
       return res.status(401).json({ error: 'Account is deactivated or not found.' });
     }
-    req.user = req.session.user;
+    
+    req.user = { ...req.session.user, mustChangePassword: !!user.mustChangePassword };
+
+    // Block non-password-change requests if mustChangePassword is true
+    const allowedPaths = ['/api/profile/change-password', '/api/profile', '/api/logout'];
+    if (req.user.mustChangePassword && !allowedPaths.includes(req.path)) {
+      return res.status(403).json({ 
+        error: 'Password change required', 
+        mustChangePassword: true 
+      });
+    }
+
     next();
   });
 };
@@ -119,7 +130,7 @@ const checkRole = (roles) => {
 // API Routes - Public
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  const sql = `SELECT id, username, password, role, status FROM users WHERE username = ?`;
+  const sql = `SELECT id, username, password, role, status, mustChangePassword FROM users WHERE username = ?`;
 
   db.get(sql, [username], async (err, user) => {
     if (err) return res.status(500).json({ error: 'Internal server error' });
@@ -136,10 +147,16 @@ app.post('/api/login', (req, res) => {
         };
         res.json({
           success: true,
-          user: { id: user.id, username: user.username, role: user.role.toUpperCase() },
+          user: { 
+            id: user.id, 
+            username: user.username, 
+            role: user.role.toUpperCase(),
+            mustChangePassword: !!user.mustChangePassword
+          },
           message: 'Login successful'
         });
       } else {
+// ... rest of login ...
         res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
     } else {
@@ -505,10 +522,69 @@ app.get('/api/audit-logs', checkRole(['ADMIN']), (req, res) => {
 
 app.get('/api/profile', (req, res) => {
   const { id } = req.user;
-  db.get(`SELECT id, username, role, fullName, email, status FROM users WHERE id = ?`, [id], (err, row) => {
+  db.get(`SELECT id, username, role, fullName, email, contactNumber, status, mustChangePassword FROM users WHERE id = ?`, [id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: 'User not found' });
-    res.json(row);
+    res.json({
+      ...row,
+      mustChangePassword: !!row.mustChangePassword
+    });
+  });
+});
+
+app.patch('/api/profile', validate([
+  body('fullName').optional().trim().escape(),
+  body('contactNumber').optional().trim().escape(),
+  body('email').optional().isEmail().normalizeEmail(),
+  body('password').notEmpty() // Required for verification
+]), async (req, res) => {
+  const { fullName, contactNumber, email, password } = req.body;
+  const { id } = req.user;
+
+  db.get('SELECT password FROM users WHERE id = ?', [id], async (err, user) => {
+    if (err || !user) return res.status(500).json({ error: 'Internal server error' });
+    
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Incorrect password for verification' });
+
+    let updates = [];
+    let params = [];
+    if (fullName !== undefined) { updates.push('fullName = ?'); params.push(fullName); }
+    if (contactNumber !== undefined) { updates.push('contactNumber = ?'); params.push(contactNumber); }
+    if (email !== undefined) { updates.push('email = ?'); params.push(email); }
+
+    if (updates.length === 0) return res.json({ message: 'No changes made' });
+
+    const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    params.push(id);
+
+    db.run(sql, params, function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logAudit(db, id, 'PROFILE_UPDATED', { fields: updates.map(u => u.split(' ')[0]) });
+      res.json({ message: 'Profile updated successfully' });
+    });
+  });
+});
+
+app.post('/api/profile/change-password', validate([
+  body('currentPassword').notEmpty(),
+  body('newPassword').isLength({ min: 6 })
+]), async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const { id } = req.user;
+
+  db.get('SELECT password FROM users WHERE id = ?', [id], async (err, user) => {
+    if (err || !user) return res.status(500).json({ error: 'Internal server error' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Incorrect current password' });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    db.run('UPDATE users SET password = ?, mustChangePassword = 0 WHERE id = ?', [hashedPassword, id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logAudit(db, id, 'PASSWORD_CHANGED', {});
+      res.json({ message: 'Password changed successfully' });
+    });
   });
 });
 
@@ -589,21 +665,6 @@ app.delete('/api/users/:id', checkRole(['ADMIN']), (req, res) => {
       logAudit(db, req.user.id, 'USER_DELETED', { id });
       res.json({ message: 'User deleted' });
     });
-  });
-});
-
-app.put('/api/users/:id/change-password', async (req, res) => {
-  const { id } = req.params;
-  const { currentPassword, newPassword } = req.body;
-  
-  // Allow users to change their own password, or Admins to change any password
-  if (req.user.id !== id && !['ADMIN'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  
-  db.get(`SELECT password FROM users WHERE id = ?`, [id], async (err, user) => {
-    if (!user || !(await bcrypt.compare(currentPassword, user.password))) return res.status(401).json({ error: 'Invalid current password' });
-    db.run(`UPDATE users SET password = ? WHERE id = ?`, [await bcrypt.hash(newPassword, 10), id], () => res.json({ message: 'Password updated' }));
   });
 });
 
