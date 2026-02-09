@@ -24,14 +24,14 @@ This plan outlines the steps to implement a role-based access control (RBAC) sys
     - [x] Endpoint to list/revoke sessions (Handled via user deactivation and status checks).
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Administrative User Management (Backend)' (Protocol in workflow.md)
 
-## Phase 3: User Profile & Security (Backend)
+## Phase 3: User Profile & Security (Backend) [checkpoint: 8b845dd]
 - [x] Task: Implement User Profile APIs.
     - [x] `GET /api/profile`: Get current user info.
     - [x] `PATCH /api/profile`: Update name, contact info, and email (requires password verification).
     - [x] `POST /api/profile/change-password`: Change password with current password verification.
 - [x] Task: Implement Mandatory Password Change logic.
     - [x] Middleware to block non-profile requests if `mustChangePassword` is true.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: User Profile & Security (Backend)' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: User Profile & Security (Backend)' (Protocol in workflow.md)
 
 ## Phase 4: Frontend Implementation (Admin Tools)
 - [ ] Task: Create User Management Dashboard.
