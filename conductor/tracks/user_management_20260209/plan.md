@@ -12,7 +12,7 @@ This plan outlines the steps to implement a role-based access control (RBAC) sys
     - [x] Create a utility function to log administrative actions to the `audit_logs` table.
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Database & Backend Foundation' (Protocol in workflow.md)
 
-## Phase 2: Administrative User Management (Backend)
+## Phase 2: Administrative User Management (Backend) [checkpoint: d752a69]
 - [x] Task: Implement Admin-only User Management APIs.
     - [x] `POST /api/users`: Create new user (Admin only, sets `mustChangePassword: true`).
     - [x] `PUT /api/users/:id`: Update user role or details (Admin only).
@@ -22,7 +22,7 @@ This plan outlines the steps to implement a role-based access control (RBAC) sys
 - [x] Task: Implement Session Management.
     - [x] Add logic to check `status === 'ACTIVE'` on every request via session.
     - [x] Endpoint to list/revoke sessions (Handled via user deactivation and status checks).
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Administrative User Management (Backend)' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Administrative User Management (Backend)' (Protocol in workflow.md)
 
 ## Phase 3: User Profile & Security (Backend)
 - [ ] Task: Implement User Profile APIs.
