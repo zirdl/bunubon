@@ -2,7 +2,7 @@
 
 This plan outlines the steps to implement a role-based access control (RBAC) system, administrative user management, user profile customization, and audit logging.
 
-## Phase 1: Database & Backend Foundation
+## Phase 1: Database & Backend Foundation [checkpoint: e17c210]
 - [x] Task: Update User model and database schema to support roles, account status, and profile fields.
     - [x] Add `role` (ADMIN, EDITOR, VIEWER), `status` (ACTIVE, DEACTIVATED), `fullName`, `contactNumber`, and `mustChangePassword` (boolean) to the `users` table.
     - [x] Create an `audit_logs` table: `id`, `userId`, `action`, `details` (JSON), `timestamp`.
@@ -10,7 +10,7 @@ This plan outlines the steps to implement a role-based access control (RBAC) sys
     - [x] Implement `checkRole(roles)` middleware to restrict access to specific API routes.
 - [x] Task: Implement Audit Logging utility.
     - [x] Create a utility function to log administrative actions to the `audit_logs` table.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Database & Backend Foundation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Database & Backend Foundation' (Protocol in workflow.md)
 
 ## Phase 2: Administrative User Management (Backend)
 - [ ] Task: Implement Admin-only User Management APIs.
