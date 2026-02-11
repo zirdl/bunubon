@@ -19,7 +19,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./tracks/user_management_20260209/](./tracks/user_management_20260209/)*
 
 
----
-
-- [x] **Track: Audit Log UX and Filter Improvements**
-*Link: [./tracks/audit_log_ux_20260211/](./tracks/audit_log_ux_20260211/)*
