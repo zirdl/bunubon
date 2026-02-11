@@ -63,10 +63,16 @@ const validate = (validations) => {
 };
 
 // Session Configuration
+const fs = require('fs');
+const sessionsDir = path.join(__dirname, 'sessions');
+if (!fs.existsSync(sessionsDir)){
+    fs.mkdirSync(sessionsDir);
+}
+
 app.use(session({
   store: new SQLiteStore({
     db: 'sessions.db',
-    dir: __dirname
+    dir: sessionsDir
   }),
   secret: SESSION_SECRET,
   resave: false,
@@ -86,7 +92,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('Error opening database:', err.message);
     process.exit(1);
   }
-  console.log('Connected to SQLite database');
+  console.log(`[${new Date().toISOString()}] [PID: ${process.pid}] Connected to SQLite database: ${dbPath}`);
+  
+  // Ensure Admin exists on startup
+  const { ensureAdmin } = require('./utils/authUtils');
+  ensureAdmin(db)
+    .then(() => console.log(`[${new Date().toISOString()}] Admin check complete on startup.`))
+    .catch(err => console.error('Failed to ensure admin on startup:', err.message));
 });
 
 // Authentication Middleware
@@ -505,14 +517,25 @@ app.delete('/api/titles/:municipalityId/:titleId', checkRole(['ADMIN']), (req, r
 const { logAudit } = require('./utils/auditLogger');
 
 app.get('/api/audit-logs', checkRole(['ADMIN']), (req, res) => {
+  const { userId, action, startDate, endDate } = req.query;
+  let where = [];
+  let params = [];
+
+  if (userId) { where.push('al.userId = ?'); params.push(userId); }
+  if (action) { where.push('al.action = ?'); params.push(action); }
+  if (startDate) { where.push('al.timestamp >= ?'); params.push(startDate); }
+  if (endDate) { where.push('al.timestamp <= ?'); params.push(endDate); }
+
+  const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const sql = `
     SELECT al.*, u.username 
     FROM audit_logs al 
     LEFT JOIN users u ON al.userId = u.id 
+    ${whereClause}
     ORDER BY al.timestamp DESC 
     LIMIT 100
   `;
-  db.all(sql, [], (err, rows) => {
+  db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows.map(row => ({
       ...row,

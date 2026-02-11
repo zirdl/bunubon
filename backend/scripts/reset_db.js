@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const dbPath = path.join(__dirname, '..', 'database.db');
 const db = new sqlite3.Database(dbPath);
 
-console.log('--- Database Reset ---');
+console.log(`--- Database Reset [PID: ${process.pid}] [Time: ${new Date().toISOString()}] ---`);
 
 db.serialize(() => {
   // 1. Drop Tables to start fresh (except users and municipalities, we'll clear them specifically)
@@ -43,7 +43,7 @@ db.serialize(() => {
 
   const insertMuniStmt = db.prepare(`
     INSERT INTO municipalities (id, name, status, notes, district)
-    VALUES (?, ?, 'active', ?, ?)
+    VALUES (?, ?, 'ACTIVE', ?, ?)
   `);
 
   predefinedMunicipalities.forEach(muni => {
@@ -56,14 +56,8 @@ db.serialize(() => {
   db.run(`DELETE FROM users WHERE username != 'admin'`);
 
   // 4. Ensure admin exists
-  db.get("SELECT id FROM users WHERE username = 'admin'", (err, row) => {
-    if (!row) {
-      console.log('Creating default admin user...');
-      const hashedPassword = bcrypt.hashSync('admin123', 10);
-      db.run("INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [crypto.randomUUID(), 'admin', hashedPassword, 'Admin', 'Administrator', 'admin@dar.gov.ph', 'Active']);
-    }
-  });
+  const { ensureAdmin } = require('../utils/authUtils');
+  ensureAdmin(db).catch(err => console.error('Error ensuring admin:', err.message));
 });
 
 db.close(() => {

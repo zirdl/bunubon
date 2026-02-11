@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const dbPath = path.join(__dirname, '..', 'database.db');
 const db = new sqlite3.Database(dbPath);
 
-console.log('--- System Initialization ---');
+console.log(`--- System Initialization [PID: ${process.pid}] [Time: ${new Date().toISOString()}] ---`);
 
 db.serialize(() => {
   // 1. Create Tables
@@ -19,7 +19,7 @@ db.serialize(() => {
     tctCloaProcessed INTEGER DEFAULT 0,
     tctEpTotal INTEGER DEFAULT 0,
     tctEpProcessed INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'active',
+    status TEXT DEFAULT 'ACTIVE',
     notes TEXT,
     district INTEGER DEFAULT 1
   )`);
@@ -98,34 +98,8 @@ db.serialize(() => {
   db.run(`CREATE INDEX IF NOT EXISTS idx_titles_serial ON titles(serialNumber)`);
 
   // 3. Handle Admin User & Hash Upgrade
-  db.get("SELECT id, password FROM users WHERE username = 'admin'", (err, row) => {
-    const defaultPassword = 'admin123';
-    
-    if (!row) {
-      console.log('Default admin user not found. Creating...');
-      const hashedPassword = bcrypt.hashSync(defaultPassword, 10);
-      db.run("INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [crypto.randomUUID(), 'admin', hashedPassword, 'ADMIN', 'Administrator', 'admin@dar.gov.ph', 'ACTIVE'], (err) => {
-          if (err) console.error('Failed to create admin:', err.message);
-          else console.log('Successfully created default admin user.');
-        });
-    } else {
-      // Check if password is SHA-256 (64 hex chars)
-      const isSha256 = /^[a-f0-9]{64}$/i.test(row.password);
-      if (isSha256) {
-        console.log('Outdated SHA-256 hash detected for admin. Upgrading to Bcrypt...');
-        const newHash = bcrypt.hashSync(defaultPassword, 10);
-        db.run("UPDATE users SET password = ?, role = 'ADMIN', status = 'ACTIVE' WHERE username = 'admin'", [newHash], (err) => {
-          if (err) console.error('Failed to upgrade hash:', err.message);
-          else console.log('Successfully upgraded admin password to Bcrypt.');
-        });
-      } else {
-        console.log('Admin user exists with secure hash.');
-        // Ensure role is ADMIN uppercase
-        db.run("UPDATE users SET role = 'ADMIN', status = 'ACTIVE' WHERE username = 'admin' AND (role = 'Admin' OR status = 'Active')");
-      }
-    }
-  });
+  const { ensureAdmin } = require('../utils/authUtils');
+  ensureAdmin(db).catch(err => console.error('Error ensuring admin:', err.message));
 
   // 4. Predefined Municipalities
   db.get("SELECT id FROM municipalities LIMIT 1", (err, row) => {
@@ -156,7 +130,7 @@ db.serialize(() => {
 
       const insertMuniStmt = db.prepare(`
         INSERT INTO municipalities (id, name, status, notes, district)
-        VALUES (?, ?, 'active', ?, ?)
+        VALUES (?, ?, 'ACTIVE', ?, ?)
       `);
 
       predefinedMunicipalities.forEach(muni => {

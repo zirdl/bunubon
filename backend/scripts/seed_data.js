@@ -1,9 +1,12 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
-const dbPath = path.join(__dirname, 'database.db');
+const dbPath = path.join(__dirname, '..', 'database.db');
 const db = new sqlite3.Database(dbPath);
+
+console.log(`--- Seed Data Regeneration [PID: ${process.pid}] [Time: ${new Date().toISOString()}] ---`);
 
 const municipalities = [
   { id: '1', name: 'Agoo', district: 2 },
@@ -146,14 +149,13 @@ db.serialize(() => {
   db.run("DELETE FROM users");
   
   console.log("Re-inserting default admin...");
-  const hashedPassword = crypto.createHash('sha256').update('admin123').digest('hex');
-  db.run("INSERT INTO users (id, username, password, role, fullName, email, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [crypto.randomUUID(), 'admin', hashedPassword, 'Admin', 'Administrator', 'admin@dar.gov.ph', 'Active']);
+  const { ensureAdmin } = require('../utils/authUtils');
+  ensureAdmin(db).catch(err => console.error('Error ensuring admin:', err.message));
 
   console.log("Re-inserting municipalities...");
   const insertMuniStmt = db.prepare(`
     INSERT INTO municipalities (id, name, tctCloaTotal, tctCloaProcessed, tctEpTotal, tctEpProcessed, status, notes, district)
-    VALUES (?, ?, 0, 0, 0, 0, 'active', '', ?)
+    VALUES (?, ?, 0, 0, 0, 0, 'ACTIVE', '', ?)
   `);
 
   const insertCheckpointStmt = db.prepare(`

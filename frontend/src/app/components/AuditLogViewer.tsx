@@ -16,16 +16,47 @@ export function AuditLogViewer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Advanced Filter States
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedAction, setSelectedAction] = useState('');
+  const [selectedUser, setSelectedUser] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [users, setUsers] = useState<{id: string, username: string}[]>([]);
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+    fetchUsers();
+  }, [selectedAction, selectedUser, startDate, endDate]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await apiFetch('/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error('Error fetching users for filter:', err);
+    }
+  };
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiFetch('/audit-logs');
+      
+      const params = new URLSearchParams();
+      if (selectedAction) params.append('action', selectedAction);
+      if (selectedUser) params.append('userId', selectedUser);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+
+      const queryString = params.toString();
+      const endpoint = `/audit-logs${queryString ? `?${queryString}` : ''}`;
+
+      const response = await apiFetch(endpoint);
       if (!response.ok) throw new Error('Failed to fetch audit logs');
       const data = await response.json();
       setLogs(data);
@@ -36,6 +67,11 @@ export function AuditLogViewer() {
       setLoading(false);
     }
   };
+
+  const actions = [
+    'USER_CREATED', 'USER_UPDATED', 'USER_DEACTIVATED', 'USER_DELETED',
+    'PROFILE_UPDATED', 'PASSWORD_CHANGED', 'PASSWORD_RESET_BY_ADMIN'
+  ];
 
   const filteredLogs = logs.filter(log => 
     log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,6 +95,33 @@ export function AuditLogViewer() {
     if (action.includes('DELETED') || action.includes('DEACTIVATED')) return 'bg-red-50 text-red-700 border-red-200';
     if (action.includes('PASSWORD')) return 'bg-amber-50 text-amber-700 border-amber-200';
     return 'bg-blue-50 text-blue-700 border-blue-200';
+  };
+
+  const formatAuditDetails = (details: any) => {
+    if (!details) return <span className="text-gray-400 italic">No additional details</span>;
+    
+    // If it's already a string (shouldn't happen with our API but good for safety)
+    if (typeof details === 'string') {
+      try {
+        details = JSON.parse(details);
+      } catch (e) {
+        return <span>{details}</span>;
+      }
+    }
+
+    const entries = Object.entries(details);
+    if (entries.length === 0) return <span className="text-gray-400 italic">No additional details</span>;
+
+    return (
+      <div className="space-y-1">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex gap-2 text-[11px]">
+            <span className="font-bold text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+            <span className="text-gray-500">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -90,21 +153,92 @@ export function AuditLogViewer() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100 flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Filter by user, action, or details..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50/50"
-            />
+        <div className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search within these results..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50/50"
+              />
+            </div>
+            <button 
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg transition-all ${
+                showAdvanced 
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-bold' 
+                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              <span>Advanced Filters</span>
+            </button>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
-            <Filter className="w-4 h-4" />
-            <span>Advanced Filters</span>
-          </button>
+
+          {showAdvanced && (
+            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Action Type</label>
+                <select 
+                  value={selectedAction}
+                  onChange={(e) => setSelectedAction(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="">All Actions</option>
+                  {actions.map(action => (
+                    <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Performed By</label>
+                <select 
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="">All Users</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>{user.username}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Start Date</label>
+                <input 
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">End Date</label>
+                <input 
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="md:col-span-4 flex justify-end">
+                <button 
+                  onClick={() => {
+                    setSelectedAction('');
+                    setSelectedUser('');
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="text-xs font-bold text-gray-400 hover:text-red-600 transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Logs Table */}
@@ -140,8 +274,8 @@ export function AuditLogViewer() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs text-gray-500 max-w-md break-all font-mono bg-gray-50 p-2 rounded-lg border border-gray-100">
-                        {JSON.stringify(log.details, null, 2)}
+                      <div className="max-w-md">
+                        {formatAuditDetails(log.details)}
                       </div>
                     </td>
                   </tr>
