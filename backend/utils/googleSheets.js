@@ -13,6 +13,7 @@ async function getSheetsClient() {
 
   try {
     const auth = new google.auth.GoogleAuth({
+      keyFile: path.join(__dirname, '..', 'credentials.json'),
       // Scopes for Google Sheets API
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });

@@ -13,6 +13,18 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   });
 
   if (response.status === 401 || response.status === 403) {
+    // Clone response to read body without consuming the original stream
+    const clone = response.clone();
+    try {
+      const data = await clone.json();
+      // If it's a password change requirement, don't auto-logout
+      if (response.status === 403 && data.mustChangePassword) {
+        return response;
+      }
+    } catch (e) {
+      // Not JSON or other error, proceed with logout
+    }
+
     // Auto logout on unauthorized
     localStorage.removeItem('currentUser');
     localStorage.removeItem('currentRole');

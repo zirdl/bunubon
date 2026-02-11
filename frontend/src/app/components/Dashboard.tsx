@@ -35,6 +35,7 @@ import {
 } from "recharts";
 import { TitleForm } from './TitleForm';
 import { ImportData } from './ImportData';
+import { apiFetch } from "../utils/api";
 
 interface DashboardProps {
   username: string;
@@ -42,9 +43,6 @@ interface DashboardProps {
   onLogout: () => void;
   onViewTitles: (municipalityId: string, municipalityName: string) => void;
 }
-
-// Use relative path to ensure it works when accessed from any device on the network
-const API_BASE_URL = "/api";
 
 const SYSTEM_FIELDS = [
   { key: 'serialNumber', label: 'Serial Number' },
@@ -97,9 +95,8 @@ export function Dashboard({
         mapping[field.label] = field.key;
       });
 
-      const response = await fetch(`${API_BASE_URL}/sync/google-sheets/preview`, {
+      const response = await apiFetch(`/sync/google-sheets/preview`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sheetId, range, mapping }),
       });
 
@@ -119,9 +116,8 @@ export function Dashboard({
   const handleConfirmSync = async () => {
     setIsSyncing(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/sync/google-sheets/confirm`, {
+      const response = await apiFetch(`/sync/google-sheets/confirm`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titles: previewData }),
       });
 
@@ -131,7 +127,7 @@ export function Dashboard({
       setShowPreview(false);
       
       // Refresh dashboard data
-      const muniResponse = await fetch(`${API_BASE_URL}/municipalities`);
+      const muniResponse = await apiFetch(`/municipalities`);
       if (muniResponse.ok) {
         const data = await muniResponse.json();
         setMunicipalities(data);
@@ -148,7 +144,7 @@ export function Dashboard({
   useEffect(() => {
     const fetchMunicipalities = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/municipalities`);
+        const response = await apiFetch(`/municipalities`);
         if (response.ok) {
           const data = await response.json();
           setMunicipalities(data);
@@ -166,7 +162,7 @@ export function Dashboard({
     const fetchAllTitles = async () => {
       try {
         const titlesPromises = municipalities.map((mun) =>
-          fetch(`${API_BASE_URL}/titles/${mun.id}?limit=1000`) // Fetch more for stats, but still limited
+          apiFetch(`/titles/${mun.id}?limit=1000`) // Fetch more for stats, but still limited
             .then((res) => res.json())
             .then((result) =>
               (result.data || []).map((t: any) => ({
@@ -528,7 +524,7 @@ export function Dashboard({
             </div>
             <div className="space-y-4 flex-1">
               <div className="grid grid-cols-1 gap-3">
-                {userRole !== 'Viewer' ? (
+                {userRole !== 'VIEWER' ? (
                   <>
                     <button
                       onClick={() => setShowTitleForm(true)}
@@ -564,7 +560,7 @@ export function Dashboard({
                 ) : (
                   <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
                     <p className="text-sm font-medium text-gray-600">Read-Only Access</p>
-                    <p className="text-xs text-gray-500 mt-1">You are logged in as a Viewer.</p>
+                    <p className="text-xs text-gray-500 mt-1">You are logged in as a VIEWER.</p>
                   </div>
                 )}
               </div>

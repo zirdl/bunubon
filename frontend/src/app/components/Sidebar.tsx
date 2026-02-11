@@ -1,22 +1,29 @@
-import { LayoutDashboard, Users, Download, Database, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Download, Database, FileSpreadsheet, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarProps {
   onCollapse?: (collapsed: boolean) => void;
+  userRole?: string;
 }
 
-export function Sidebar({ onCollapse }: SidebarProps) {
+export function Sidebar({ onCollapse, userRole }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isAdmin = ['ADMIN'].includes(userRole || '');
+  const isEditor = ['EDITOR'].includes(userRole || '');
+
   const menuItems = [
     { id: '/', label: 'Dashboard', icon: LayoutDashboard },
     { id: '/titles', label: 'Land Titles', icon: FileSpreadsheet },
-    { id: '/users', label: 'User Management', icon: Users },
     { id: '/export', label: 'Export Data', icon: Download },
-    { id: '/backup', label: 'Backup & Restore', icon: Database },
+    ...(isAdmin ? [
+      { id: '/users', label: 'User Management', icon: Users },
+      { id: '/audit-logs', label: 'Audit Logs', icon: Activity },
+      { id: '/backup', label: 'Backup & Restore', icon: Database },
+    ] : []),
   ];
 
   const currentPath = location.pathname;

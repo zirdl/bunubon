@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy } from 'react';
 import { ArrowLeft, Plus, Edit2, Trash2, FileText, Search } from 'lucide-react';
 import { TitleForm, LandTitle } from './TitleForm';
+import { apiFetch } from '../utils/api';
 import List from './VirtualList';
 
 // Row component for virtualization
@@ -72,9 +73,6 @@ interface TitlesListProps {
   onBack: () => void;
 }
 
-// Use relative path to ensure it works when accessed from any device on the network
-const API_BASE_URL = '/api';
-
 export function TitlesList({ municipalityId, municipalityName, userRole, onBack }: TitlesListProps) {
   const [titles, setTitles] = useState<LandTitle[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -102,7 +100,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
         type: filterType
       });
 
-      const response = await fetch(`${API_BASE_URL}/titles/${municipalityId}?${queryParams}`);
+      const response = await apiFetch(`/titles/${municipalityId}?${queryParams}`);
       if (response.ok) {
         const result = await response.json();
         // Ensure backward compatibility: convert titleNumber to serialNumber
@@ -145,7 +143,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this land title?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/titles/${municipalityId}/${id}`, {
+        const response = await apiFetch(`/titles/${municipalityId}/${id}`, {
           method: 'DELETE',
         });
 
@@ -167,11 +165,8 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
     try {
       if (editingTitle) {
         // Update existing title
-        const response = await fetch(`${API_BASE_URL}/titles/${municipalityId}/${editingTitle.id}`, {
+        const response = await apiFetch(`/titles/${municipalityId}/${editingTitle.id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(data),
         });
 
@@ -188,11 +183,8 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
       } else {
         // Create new title
         const newTitle = { ...data, id: Date.now().toString() };
-        const response = await fetch(`${API_BASE_URL}/titles/${municipalityId}`, {
+        const response = await apiFetch(`/titles/${municipalityId}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(newTitle),
         });
 
@@ -313,7 +305,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
             <option value="processing">Processing</option>
             <option value="released">Released</option>
           </select>
-          {userRole !== 'Viewer' && (
+          {userRole !== 'VIEWER' && (
             <button
               onClick={handleCreate}
               className="flex items-center gap-2 px-6 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors shadow-md"
@@ -344,7 +336,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
                       <th className="w-[10%] px-4 py-3 text-left text-xs font-bold text-gray-600">Lot #</th>
                       <th className="w-[10%] px-4 py-3 text-left text-xs font-bold text-gray-600">Area</th>
                       <th className="w-[10%] px-4 py-3 text-left text-xs font-bold text-gray-600">Status</th>
-                      {userRole !== 'Viewer' && <th className="w-[10%] px-4 py-3 text-right text-xs font-bold text-gray-600">Actions</th>}
+                      {userRole !== 'VIEWER' && <th className="w-[10%] px-4 py-3 text-right text-xs font-bold text-gray-600">Actions</th>}
                     </tr>
                   </thead>
                 </table>
@@ -382,7 +374,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
                                 {title.status}
                               </span>
                             </td>
-                            {userRole !== 'Viewer' && (
+                            {userRole !== 'VIEWER' && (
                               <td className="w-[10%] px-4 py-3 text-right">
                                 <div className="flex gap-2 justify-end">
                                   <button
@@ -450,7 +442,7 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
           <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500">No land titles found</p>
-            {userRole !== 'Viewer' && (
+            {userRole !== 'VIEWER' && (
               <button
                 onClick={handleCreate}
                 className="mt-4 px-6 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors"

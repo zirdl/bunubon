@@ -105,7 +105,8 @@ const authenticateSession = (req, res, next) => {
     req.user = { ...req.session.user, mustChangePassword: !!user.mustChangePassword };
 
     // Block non-password-change requests if mustChangePassword is true
-    const allowedPaths = ['/api/profile/change-password', '/api/profile', '/api/logout'];
+    // Note: req.path is relative to the mount point (/api)
+    const allowedPaths = ['/profile/change-password', '/profile', '/logout'];
     if (req.user.mustChangePassword && !allowedPaths.includes(req.path)) {
       return res.status(403).json({ 
         error: 'Password change required', 

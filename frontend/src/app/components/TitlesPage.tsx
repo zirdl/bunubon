@@ -4,6 +4,7 @@ import { MunicipalityCard } from './MunicipalityCard';
 import { MunicipalityForm, MunicipalityData } from './MunicipalityForm';
 import { TitleForm, LandTitle } from './TitleForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { apiFetch } from '../utils/api';
 import List from './VirtualList';
 
 interface MunicipalitiesPageProps {
@@ -12,9 +13,6 @@ interface MunicipalitiesPageProps {
 }
 
 // Row component for virtualization
-
-// Use relative path to ensure it works when accessed from any device on the network
-const API_BASE_URL = '/api';
 
 // The 20 municipalities of La Union with land title tracking
 const initialMunicipalities: MunicipalityData[] = [
@@ -364,7 +362,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
   useEffect(() => {
     const fetchMunicipalities = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/municipalities`);
+        const response = await apiFetch(`/municipalities`);
         if (response.ok) {
           const data = await response.json();
           // Ensure district field exists for all municipalities
@@ -398,7 +396,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
         type: filterType
       });
 
-      const response = await fetch(`${API_BASE_URL}/titles?${queryParams}`);
+      const response = await apiFetch(`/titles?${queryParams}`);
       if (response.ok) {
         const result = await response.json();
         setAllTitles(result.data);
@@ -430,7 +428,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this municipality record?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/municipalities/${id}`, {
+        const response = await apiFetch(`/municipalities/${id}`, {
           method: 'DELETE',
         });
 
@@ -456,11 +454,8 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
     try {
       if (editingMunicipality) {
         // Update existing
-        const response = await fetch(`${API_BASE_URL}/municipalities/${editingMunicipality.id}`, {
+        const response = await apiFetch(`/municipalities/${editingMunicipality.id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(data),
         });
 
@@ -480,11 +475,8 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
           ...data,
           id: Date.now().toString(),
         };
-        const response = await fetch(`${API_BASE_URL}/municipalities`, {
+        const response = await apiFetch(`/municipalities`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(newMunicipality),
         });
 
@@ -525,11 +517,8 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
 
     try {
       const newTitle = { ...data, id: Date.now().toString() };
-      const response = await fetch(`${API_BASE_URL}/titles/${muniId}`, {
+      const response = await apiFetch(`/titles/${muniId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(newTitle),
       });
 
@@ -621,7 +610,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                   <option value="released">Released</option>
                 </select>
                 
-                {!userRole || userRole !== 'Viewer' ? (
+                {!userRole || userRole !== 'VIEWER' ? (
                   <button
                     onClick={() => setShowTitleForm(true)}
                     className="flex items-center gap-2 px-6 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-colors shadow-md text-sm font-bold whitespace-nowrap"
@@ -767,7 +756,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                   <option value={2}>District 2</option>
                 </select>
 
-                {!userRole || userRole !== 'Viewer' ? (
+                {!userRole || userRole !== 'VIEWER' ? (
                   <button
                     onClick={() => setShowTitleForm(true)}
                     className="flex items-center gap-2 px-6 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition-colors shadow-md text-sm font-bold"
@@ -786,7 +775,7 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                   <MunicipalityCard
                     key={municipality.id}
                     municipality={municipality}
-                    readOnly={userRole === 'Viewer'}
+                    readOnly={userRole === 'VIEWER'}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                     onViewTitles={onViewTitles}

@@ -34,21 +34,21 @@ This plan outlines the steps to implement a role-based access control (RBAC) sys
 - [x] Task: Conductor - User Manual Verification 'Phase 3: User Profile & Security (Backend)' (Protocol in workflow.md)
 
 ## Phase 4: Frontend Implementation (Admin Tools)
-- [ ] Task: Create User Management Dashboard.
-    - [ ] List all users with role and status indicators.
-    - [ ] Add/Edit User modals.
-- [ ] Task: Create System Audit Log viewer.
-    - [ ] Table view with filtering by date, user, and action type.
-- [ ] Task: Implement UI-level RBAC.
-    - [ ] Hide/Show navigation items and buttons based on user role from session.
+- [x] Task: Create User Management Dashboard.
+    - [x] List all users with role and status indicators.
+    - [x] Add/Edit User modals.
+- [x] Task: Create System Audit Log viewer.
+    - [x] Table view with filtering by date, user, and action type.
+- [x] Task: Implement UI-level RBAC.
+    - [x] Hide/Show navigation items and buttons based on user role from session.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Frontend Implementation (Admin Tools)' (Protocol in workflow.md)
 
 ## Phase 5: Frontend Implementation (User Features)
-- [ ] Task: Create User Profile page.
-    - [ ] Forms for updating personal info and changing password.
-- [ ] Task: Create "Force Password Change" view.
-    - [ ] A restricted view that appears if the user needs to reset their password before proceeding.
-- [ ] Task: Refactor Authentication Flow.
-    - [ ] Remove public Sign-Up page.
-    - [ ] Update Login to handle deactivated accounts and password reset flags.
+- [x] Task: Create User Profile page.
+    - [x] Forms for updating personal info and changing password.
+- [x] Task: Create "Force Password Change" view.
+    - [x] A restricted view that appears if the user needs to reset their password before proceeding.
+- [x] Task: Refactor Authentication Flow.
+    - [x] Remove public Sign-Up page.
+    - [x] Update Login to handle deactivated accounts and password reset flags.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Frontend Implementation (User Features)' (Protocol in workflow.md)

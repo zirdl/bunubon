@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { FileSpreadsheet, Download } from 'lucide-react';
-
-const API_BASE_URL = '/api';
+import { apiFetch } from '../utils/api';
 
 export function ExportData() {
   const handleExportCSV = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/municipalities`);
+      const response = await apiFetch(`/municipalities`);
       if (!response.ok) throw new Error('Failed to fetch data');
       const municipalities = await response.json();
       
@@ -41,7 +40,7 @@ export function ExportData() {
 
   const handleExportExcel = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/titles/export`);
+      const response = await apiFetch(`/titles/export`);
       if (!response.ok) throw new Error('Export failed');
       
       const blob = await response.blob();

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Upload, FileSpreadsheet, ArrowRight, Check, AlertCircle, X, ChevronDown, Database } from 'lucide-react';
+import { apiFetch } from '../utils/api';
 
 interface ImportDataProps {
   onCancel: () => void;
@@ -106,11 +107,8 @@ export function ImportData({ onCancel, onImportComplete, municipalities }: Impor
     const dataToImport = processData();
     
     try {
-      const response = await fetch('http://localhost:5000/api/titles/batch', {
+      const response = await apiFetch('/titles/batch', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ titles: dataToImport }),
       });
       

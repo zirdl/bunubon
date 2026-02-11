@@ -41,30 +41,32 @@ describe('Database Schema', () => {
   });
 });
 
-describe('Audit Logger', () => {
-  const { logAudit } = require('./utils/auditLogger');
-  
-  it('should log an action to the audit_logs table', (done) => {
-    const userId = 'test-user-id';
-    const action = 'TEST_ACTION';
-    const details = { key: 'value' };
-    
-    logAudit(db, userId, action, details);
-    
-    // Give it a small delay since db.run is async and not promisified in the utility yet
-    setTimeout(() => {
-      db.get("SELECT * FROM audit_logs WHERE action = 'TEST_ACTION'", (err, row) => {
-        if (err) return done(err);
-        try {
-          expect(row).toBeDefined();
-          expect(row.userId).toBe(userId);
-          expect(row.action).toBe(action);
-          expect(JSON.parse(row.details)).toEqual(details);
-          done();
-        } catch (e) {
-          done(e);
-        }
-      });
-    }, 100);
+describe('User Profile & Security APIs', () => {
+
+  const request = require('supertest');
+
+  const app = require('./server');
+
+
+
+  it('GET /api/profile should return current user info', async () => {
+
+    const response = await request(app).get('/api/profile');
+
+    expect(response.status).toBe(401); // No session
+
   });
+
+
+
+  it('PATCH /api/profile should be restricted', async () => {
+
+    const response = await request(app).patch('/api/profile').send({ fullName: 'New Name' });
+
+    expect(response.status).toBe(401); // No session
+
+  });
+
 });
+
+

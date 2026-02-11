@@ -3,10 +3,9 @@ import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 interface LoginPageProps {
   onLogin: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  onSignUp: () => void; // Function to trigger sign-up view
 }
 
-export function LoginPage({ onLogin, onSignUp }: LoginPageProps) {
+export function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -112,24 +111,20 @@ export function LoginPage({ onLogin, onSignUp }: LoginPageProps) {
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
 
-          <div className="text-center text-sm text-gray-500 mt-4">
-            Demo credentials: admin / admin123
-          </div>
+                    <div className="text-center text-sm text-gray-500 mt-4">
 
-          <div className="text-center mt-6">
-            <p className="text-gray-600">
-              Don't have an account?{' '}
-              <button
-                type="button"
-                onClick={onSignUp}
-                className="text-emerald-700 hover:text-emerald-800 font-medium underline"
-              >
-                Sign up here
-              </button>
-            </p>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+                      Demo credentials: admin / admin123
+
+                    </div>
+
+                  </form>
+
+                </div>
+
+              </div>
+
+            );
+
+          }
+
+          

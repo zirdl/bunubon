@@ -8,10 +8,13 @@ import { apiFetch } from './utils/api';
 // Lazy loaded components
 const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
 const TitlesPage = lazy(() => import('./components/TitlesPage').then(module => ({ default: module.TitlesPage })));
-const UserManagement = lazy(() => import('./components/UserManagement').then(module => ({ default: module.UserManagement })));
+const UserManagement = lazy(() => import('./components/UserManagementDashboard').then(module => ({ default: module.UserManagementDashboard })));
+const AuditLogViewer = lazy(() => import('./components/AuditLogViewer').then(module => ({ default: module.AuditLogViewer })));
 const ExportData = lazy(() => import('./components/ExportData').then(module => ({ default: module.ExportData })));
 const BackupRestore = lazy(() => import('./components/BackupRestore').then(module => ({ default: module.BackupRestore })));
 const TitlesList = lazy(() => import('./components/TitlesList').then(module => ({ default: module.TitlesList })));
+const UserProfile = lazy(() => import('./components/UserProfile').then(module => ({ default: module.UserProfile })));
+import { ForcePasswordChange } from './components/ForcePasswordChange';
 
 const API_BASE_URL = '/api';
 
@@ -19,20 +22,33 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('');
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
 
   // Check for existing session on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    const savedRole = localStorage.getItem('currentRole');
-    if (savedUser) {
-      setUsername(savedUser);
-      setRole(savedRole || '');
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
+    const checkSession = async () => {
+      try {
+        const response = await apiFetch('/profile');
+        if (response.ok) {
+          const user = await response.json();
+          setUsername(user.username);
+          setRole(user.role);
+          setMustChangePassword(user.mustChangePassword);
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('currentRole');
+        }
+      } catch (err) {
+        console.error('Session check failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkSession();
   }, []);
 
   const handleLogin = async (username: string, password: string) => {
@@ -51,6 +67,7 @@ export default function App() {
       if (data.success) {
         setUsername(username);
         setRole(data.user.role);
+        setMustChangePassword(data.user.mustChangePassword);
         setIsAuthenticated(true);
         localStorage.setItem('currentUser', username);
         localStorage.setItem('currentRole', data.user.role);
@@ -64,32 +81,6 @@ export default function App() {
     }
   };
 
-  const handleSignUp = async (username: string, password: string, fullName: string, email: string) => {
-    try {
-      const response = await apiFetch(`/users`, {
-        method: 'POST',
-        body: JSON.stringify({
-          username,
-          password,
-          role: 'Viewer', // Default role for new users
-          fullName,
-          email
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        return { success: true, message: 'Account created successfully' };
-      } else {
-        return { success: false, message: data.error || 'Sign up failed' };
-      }
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { success: false, message: 'Network error' };
-    }
-  };
-
   const handleLogout = async () => {
     try {
       await apiFetch('/logout', { method: 'POST' });
@@ -99,6 +90,7 @@ export default function App() {
       setIsAuthenticated(false);
       setUsername('');
       setRole('');
+      setMustChangePassword(false);
       localStorage.removeItem('currentUser');
       localStorage.removeItem('currentRole');
       navigate('/login');
@@ -107,19 +99,29 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-emerald-50">
-        <div className="text-emerald-700 font-semibold">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+          <p className="mt-4 text-emerald-700 font-bold tracking-tight">LTTS: Authenticating...</p>
+        </div>
       </div>
+    );
+  }
+
+  if (isAuthenticated && mustChangePassword) {
+    return (
+      <ForcePasswordChange 
+        username={username} 
+        onPasswordChanged={() => setMustChangePassword(false)} 
+        onLogout={handleLogout} 
+      />
     );
   }
 
   return (
     <Routes>
       <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} onSignUp={() => navigate('/signup')} />
-      } />
-      <Route path="/signup" element={
-        isAuthenticated ? <Navigate to="/" replace /> : <SignUpPage onSignUp={handleSignUp} onBackToLogin={() => navigate('/login')} />
+        isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} />
       } />
       
       {/* Protected Routes */}
@@ -159,6 +161,7 @@ function AuthenticatedLayout({ username, userRole, onLogout, sidebarCollapsed, s
     <div className="flex min-h-screen bg-emerald-50">
       <Sidebar
         onCollapse={setSidebarCollapsed}
+        userRole={userRole}
       />
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-emerald-700 text-white shadow-lg sticky top-0 z-20">
@@ -181,7 +184,10 @@ function AuthenticatedLayout({ username, userRole, onLogout, sidebarCollapsed, s
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
+              <div 
+                className="text-right hidden sm:block cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate('/profile')}
+              >
                 <p className="text-[10px] text-emerald-100 uppercase tracking-wider">Logged in as</p>
                 <div className="flex items-center gap-2 justify-end">
                   <p className="text-sm font-medium text-white">{username}</p>
@@ -219,11 +225,17 @@ function AuthenticatedLayout({ username, userRole, onLogout, sidebarCollapsed, s
               <Route path="/users" element={
                 <UserManagement />
               } />
+              <Route path="/audit-logs" element={
+                <AuditLogViewer />
+              } />
               <Route path="/export" element={
                 <ExportData />
               } />
               <Route path="/backup" element={
                 <BackupRestore />
+              } />
+              <Route path="/profile" element={
+                <UserProfile />
               } />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
