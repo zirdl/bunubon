@@ -1,8 +1,0 @@
-{
-  "track_id": "google_sheets_sync_20260128",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-01-28T15:00:00Z",
-  "updated_at": "2026-01-28T15:00:00Z",
-  "description": "Implement Google Sheets API integration to allow staff to pull data directly from their collaborative spreadsheets into the system database."
-}
