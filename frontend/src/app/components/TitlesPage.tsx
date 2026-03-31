@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy } from 'react';
-import { Search, FileText, MapPin, ListFilter, Trash2, Edit2, Plus, Building2 } from 'lucide-react';
+import { Search, FileText, MapPin, ListFilter, Trash2, Edit2, Plus, Building2, ChevronDown } from 'lucide-react';
 import { MunicipalityCard } from './MunicipalityCard';
 import { MunicipalityForm, MunicipalityData } from './MunicipalityForm';
 import { TitleForm, LandTitle } from './TitleForm';
@@ -746,15 +746,18 @@ export function TitlesPage({ userRole, onViewTitles }: MunicipalitiesPageProps) 
                 />
               </div>
               <div className="flex gap-2">
-                <select
-                  value={filterDistrict}
-                  onChange={(e) => setFilterDistrict(e.target.value === 'all' ? 'all' : Number(e.target.value) as 1 | 2)}
-                  className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm text-sm font-medium"
-                >
-                  <option value="all">All Districts</option>
-                  <option value={1}>District 1</option>
-                  <option value={2}>District 2</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filterDistrict}
+                    onChange={(e) => setFilterDistrict(e.target.value === 'all' ? 'all' : Number(e.target.value) as 1 | 2)}
+                    className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm text-sm font-medium appearance-none pr-10"
+                  >
+                    <option value="all">All Districts</option>
+                    <option value={1}>District 1</option>
+                    <option value={2}>District 2</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
 
                 {!userRole || userRole !== 'VIEWER' ? (
                   <button

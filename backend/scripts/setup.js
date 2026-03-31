@@ -1,18 +1,20 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 const dbPath = path.join(__dirname, '..', 'database.db');
-const db = new sqlite3.Database(dbPath);
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
 console.log(`--- System Initialization [PID: ${process.pid}] [Time: ${new Date().toISOString()}] ---`);
 
-db.serialize(() => {
+try {
   // 1. Create Tables
   console.log('Verifying tables...');
-  
-  db.run(`CREATE TABLE IF NOT EXISTS municipalities (
+
+  db.exec(`CREATE TABLE IF NOT EXISTS municipalities (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     tctCloaTotal INTEGER DEFAULT 0,
@@ -24,7 +26,7 @@ db.serialize(() => {
     district INTEGER DEFAULT 1
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS municipality_checkpoints (
+  db.exec(`CREATE TABLE IF NOT EXISTS municipality_checkpoints (
     id TEXT PRIMARY KEY,
     municipality_id TEXT,
     label TEXT NOT NULL,
@@ -32,7 +34,7 @@ db.serialize(() => {
     FOREIGN KEY (municipality_id) REFERENCES municipalities (id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS titles (
+  db.exec(`CREATE TABLE IF NOT EXISTS titles (
     id TEXT PRIMARY KEY,
     municipality_id TEXT,
     serialNumber TEXT NOT NULL,
@@ -53,7 +55,7 @@ db.serialize(() => {
     FOREIGN KEY (municipality_id) REFERENCES municipalities (id)
   )`);
 
-  db.run(`CREATE TABLE IF NOT EXISTS users (
+  db.exec(`CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
@@ -65,25 +67,7 @@ db.serialize(() => {
     mustChangePassword BOOLEAN DEFAULT 0
   )`);
 
-  // Migration for existing users table
-  const columnsToAdd = [
-    { name: 'contactNumber', type: 'TEXT DEFAULT \'\'' },
-    { name: 'mustChangePassword', type: 'BOOLEAN DEFAULT 0' }
-  ];
-
-  columnsToAdd.forEach(col => {
-    db.run(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`, (err) => {
-      if (err) {
-        if (!err.message.includes('duplicate column name')) {
-          console.error(`Error adding column ${col.name}:`, err.message);
-        }
-      } else {
-        console.log(`Added column ${col.name} to users table.`);
-      }
-    });
-  });
-
-  db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+  db.exec(`CREATE TABLE IF NOT EXISTS audit_logs (
     id TEXT PRIMARY KEY,
     userId TEXT,
     action TEXT NOT NULL,
@@ -94,55 +78,64 @@ db.serialize(() => {
 
   // 2. Create Indexes
   console.log('Verifying indexes...');
-  db.run(`CREATE INDEX IF NOT EXISTS idx_titles_municipality ON titles(municipality_id)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_titles_serial ON titles(serialNumber)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_titles_municipality ON titles(municipality_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_titles_serial ON titles(serialNumber)`);
 
-  // 3. Handle Admin User & Hash Upgrade
-  const { ensureAdmin } = require('../utils/authUtils');
-  ensureAdmin(db).catch(err => console.error('Error ensuring admin:', err.message));
+  // 3. Handle Admin User
+  console.log('Checking admin user...');
+  const { ensureAdminSync } = require('../utils/authUtils');
+  ensureAdminSync(db);
 
   // 4. Predefined Municipalities
-  db.get("SELECT id FROM municipalities LIMIT 1", (err, row) => {
-    if (!row) {
-      console.log('Provisioning predefined municipalities...');
-      const predefinedMunicipalities = [
-        { id: '1', name: 'Agoo', district: 2, notes: '' },
-        { id: '2', name: 'Aringay', district: 2, notes: '' },
-        { id: '3', name: 'Bacnotan', district: 1, notes: '' },
-        { id: '4', name: 'Bagulin', district: 2, notes: '' },
-        { id: '5', name: 'Balaoan', district: 1, notes: '' },
-        { id: '6', name: 'Bangar', district: 1, notes: '' },
-        { id: '7', name: 'Bauang', district: 2, notes: '' },
-        { id: '8', name: 'Burgos', district: 2, notes: '' },
-        { id: '9', name: 'Caba', district: 2, notes: '' },
-        { id: '10', name: 'Luna', district: 1, notes: '' },
-        { id: '11', name: 'Naguilian', district: 2, notes: '' },
-        { id: '12', name: 'Pugo', district: 2, notes: '' },
-        { id: '13', name: 'Rosario', district: 2, notes: '' },
-        { id: '14', name: 'San Gabriel', district: 1, notes: '' },
-        { id: '15', name: 'San Juan', district: 1, notes: '' },
-        { id: '16', name: 'Santol', district: 1, notes: '' },
-        { id: '17', name: 'Santo Tomas', district: 2, notes: '' },
-        { id: '18', name: 'Sudipen', district: 1, notes: '' },
-        { id: '19', name: 'Tubao', district: 2, notes: '' },
-        { id: '20', name: 'San Fernando', district: 1, notes: '' },
-      ];
+  const checkStmt = db.prepare("SELECT id FROM municipalities LIMIT 1");
+  const row = checkStmt.get();
+  
+  if (!row) {
+    console.log('Provisioning predefined municipalities...');
+    const predefinedMunicipalities = [
+      { id: '1', name: 'Agoo', district: 2, notes: '' },
+      { id: '2', name: 'Aringay', district: 2, notes: '' },
+      { id: '3', name: 'Bacnotan', district: 1, notes: '' },
+      { id: '4', name: 'Bagulin', district: 2, notes: '' },
+      { id: '5', name: 'Balaoan', district: 1, notes: '' },
+      { id: '6', name: 'Bangar', district: 1, notes: '' },
+      { id: '7', name: 'Bauang', district: 2, notes: '' },
+      { id: '8', name: 'Burgos', district: 2, notes: '' },
+      { id: '9', name: 'Caba', district: 2, notes: '' },
+      { id: '10', name: 'Cervantes', district: 3, notes: '' },
+      { id: '11', name: 'Gabu', district: 3, notes: '' },
+      { id: '12', name: 'La Trinidad', district: 3, notes: '' },
+      { id: '13', name: 'Luna', district: 1, notes: '' },
+      { id: '14', name: 'Naguilian', district: 1, notes: '' },
+      { id: '15', name: 'Pugo', district: 2, notes: '' },
+      { id: '16', name: 'San Gabriel', district: 3, notes: '' },
+      { id: '17', name: 'San Juan', district: 1, notes: '' },
+      { id: '18', name: 'Santol', district: 3, notes: '' },
+      { id: '19', name: 'Sudipen', district: 3, notes: '' },
+      { id: '20', name: 'Tubao', district: 2, notes: '' }
+    ];
 
-      const insertMuniStmt = db.prepare(`
-        INSERT INTO municipalities (id, name, status, notes, district)
-        VALUES (?, ?, 'ACTIVE', ?, ?)
-      `);
+    const insertStmt = db.prepare(`
+      INSERT OR IGNORE INTO municipalities (id, name, district, notes)
+      VALUES (@id, @name, @district, @notes)
+    `);
 
-      predefinedMunicipalities.forEach(muni => {
-        insertMuniStmt.run([muni.id, muni.name, muni.notes, muni.district]);
-      });
+    const insertMany = db.transaction((munis) => {
+      for (const muni of munis) {
+        insertStmt.run(muni);
+      }
+    });
 
-      insertMuniStmt.finalize();
-      console.log('Successfully provisioned 20 municipalities.');
-    }
-  });
-});
+    insertMany(predefinedMunicipalities);
+    console.log(`Inserted ${predefinedMunicipalities.length} municipalities.`);
+  }
 
-// Removed explicit db.close() to avoid SQLITE_MISUSE when callbacks are still pending.
-// The process will exit naturally when all scheduled operations are complete.
-console.log('--- Initialization Process Started ---');
+  console.log('Database setup complete.');
+  db.close();
+  process.exit(0);
+
+} catch (err) {
+  console.error('Setup error:', err.message);
+  db.close();
+  process.exit(1);
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Calendar, User, Activity, Filter, RefreshCcw } from 'lucide-react';
+import { Search, Calendar, User, Activity, Filter, RefreshCcw, ChevronDown } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 
 interface AuditLog {
@@ -182,29 +182,35 @@ export function AuditLogViewer() {
             <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Action Type</label>
-                <select 
-                  value={selectedAction}
-                  onChange={(e) => setSelectedAction(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="">All Actions</option>
-                  {actions.map(action => (
-                    <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedAction}
+                    onChange={(e) => setSelectedAction(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none pr-10"
+                  >
+                    <option value="">All Actions</option>
+                    {actions.map(action => (
+                      <option key={action} value={action}>{action.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Performed By</label>
-                <select 
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="">All Users</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>{user.username}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none pr-10"
+                  >
+                    <option value="">All Users</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>{user.username}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                </div>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Start Date</label>

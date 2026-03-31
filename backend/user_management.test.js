@@ -1,43 +1,37 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const dbPath = path.join(__dirname, 'database.db');
 
 let db;
 
-beforeAll((done) => {
-  db = new sqlite3.Database(dbPath, done);
+beforeAll(() => {
+  db = new Database(dbPath);
 });
 
-afterAll((done) => {
+afterAll(() => {
   if (db) {
-    db.close(done);
-  } else {
-    done();
+    db.close();
   }
 });
 
 describe('Database Schema', () => {
-  it('should have the updated columns in users table', (done) => {
-    db.all("PRAGMA table_info(users)", (err, columns) => {
-      if (err) return done(err);
-      
-      const columnNames = columns.map(c => c.name);
-      expect(columnNames).toContain('role');
-      expect(columnNames).toContain('status');
-      expect(columnNames).toContain('fullName');
-      expect(columnNames).toContain('contactNumber');
-      expect(columnNames).toContain('mustChangePassword');
-      done();
-    });
+  it('should have the updated columns in users table', () => {
+    const stmt = db.prepare("PRAGMA table_info(users)");
+    const columns = stmt.all();
+
+    const columnNames = columns.map(c => c.name);
+    expect(columnNames).toContain('role');
+    expect(columnNames).toContain('status');
+    expect(columnNames).toContain('fullName');
+    expect(columnNames).toContain('contactNumber');
+    expect(columnNames).toContain('mustChangePassword');
   });
 
-  it('should have the audit_logs table', (done) => {
-    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_logs'", (err, row) => {
-      if (err) return done(err);
-      expect(row).toBeDefined();
-      expect(row.name).toBe('audit_logs');
-      done();
-    });
+  it('should have the audit_logs table', () => {
+    const stmt = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='audit_logs'");
+    const row = stmt.get();
+    expect(row).toBeDefined();
+    expect(row.name).toBe('audit_logs');
   });
 });
 

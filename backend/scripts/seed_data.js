@@ -79,10 +79,10 @@ function formatDate(date) {
 }
 
 const titlesToInsert = [];
-const numTitles = 1200;
+const numTitles = 1500;
 
-// Date range: Last 12 months
-const endDate = new Date('2026-01-06');
+// Date range: Last 12 months up to current date (approx)
+const endDate = new Date('2026-03-30');
 const startDate = new Date('2025-01-01');
 
 for (let i = 0; i < numTitles; i++) {
@@ -113,11 +113,12 @@ for (let i = 0; i < numTitles; i++) {
   let mother_ccloa_no = '';
   let title_no = '';
 
-  if (type === 'Regular') {
-    subtype = getRandomElement(regularSubtypes);
-  } else if (type === 'SPLIT') {
+  if (type === 'SPLIT') {
     mother_ccloa_no = `CLOA-${Math.floor(1000 + Math.random() * 9000)}`;
     title_no = `T-${Math.floor(10000 + Math.random() * 90000)}`;
+    subtype = ''; // No subtypes for SPLIT
+  } else if (type === 'Regular') {
+    subtype = getRandomElement(regularSubtypes);
   }
 
   titlesToInsert.push({

@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy } from 'react';
-import { ArrowLeft, Plus, Edit2, Trash2, FileText, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, FileText, Search, ChevronDown } from 'lucide-react';
 import { TitleForm, LandTitle } from './TitleForm';
 import { apiFetch } from '../utils/api';
 import List from './VirtualList';
@@ -222,9 +222,9 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
     
     let matchesType = true;
     if (filterType === 'SPLIT') {
-      matchesType = t.titleType === 'SPLIT' || t.titleType === 'TCT-CLOA' || t.titleType === 'TCT-CLOA (Legacy)';
+      matchesType = t.titleType === 'SPLIT' || t.titleType === 'TCT-CLOA';
     } else if (filterType === 'Regular') {
-      matchesType = t.titleType === 'Regular' || t.titleType === 'Mother CCLOA' || t.titleType === 'TCT-EP' || t.titleType === 'TCT-EP (Legacy)';
+      matchesType = t.titleType === 'Regular' || t.titleType === 'Mother CCLOA' || t.titleType === 'TCT-EP';
     } else if (filterType !== 'all') {
       matchesType = t.titleType === filterType;
     }
@@ -234,186 +234,186 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
   });
 
   // Calculate statistics
-  const splitCount = titles.filter(t => t.titleType === 'SPLIT' || t.titleType === 'TCT-CLOA' || t.titleType === 'TCT-CLOA (Legacy)').length;
-  const regularCount = titles.filter(t => t.titleType === 'Regular' || t.titleType === 'Mother CCLOA' || t.titleType === 'TCT-EP' || t.titleType === 'TCT-EP (Legacy)').length;
+  const splitCount = titles.filter(t => t.titleType === 'SPLIT' || t.titleType === 'TCT-CLOA').length;
+  const regularCount = titles.filter(t => t.titleType === 'Regular' || t.titleType === 'Mother CCLOA' || t.titleType === 'TCT-EP').length;
   
   const releasedCount = titles.filter(t => t.status === 'released' || t.status === 'Released').length;
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="max-w-[80%] mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full mx-auto px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 sm:mb-4"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base">Back</span>
           </button>
-          <h1 className="text-2xl font-bold text-emerald-700">Land Titles - {municipalityName}</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-emerald-700">Land Titles - {municipalityName}</h1>
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <p className="text-sm text-gray-600 mb-1">Total Titles</p>
-            <p className="text-2xl text-emerald-700 font-bold">{totalRecords}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 shadow-sm">
+            <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Titles</p>
+            <p className="text-xl sm:text-2xl text-emerald-700 font-bold">{totalRecords}</p>
           </div>
-          <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 shadow-sm">
-            <p className="text-sm text-amber-800 mb-1 font-medium">SPLIT Titles</p>
-            <p className="text-2xl text-amber-700 font-bold">{splitCount}</p>
+          <div className="bg-amber-50 p-3 sm:p-4 rounded-lg border border-amber-200 shadow-sm">
+            <p className="text-xs sm:text-sm text-amber-800 mb-1 font-medium">SPLIT Titles</p>
+            <p className="text-xl sm:text-2xl text-amber-700 font-bold">{splitCount}</p>
           </div>
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 shadow-sm">
-            <p className="text-sm text-purple-800 mb-1 font-medium">Regular Titles</p>
-            <p className="text-2xl text-purple-700 font-bold">{regularCount}</p>
+          <div className="bg-purple-50 p-3 sm:p-4 rounded-lg border border-purple-200 shadow-sm">
+            <p className="text-xs sm:text-sm text-purple-800 mb-1 font-medium">Regular Titles</p>
+            <p className="text-xl sm:text-2xl text-purple-700 font-bold">{regularCount}</p>
           </div>
-          <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 shadow-sm">
-            <p className="text-sm text-emerald-800 mb-1 font-medium">Released</p>
-            <p className="text-2xl text-emerald-700 font-bold">{releasedCount}</p>
+          <div className="bg-emerald-50 p-3 sm:p-4 rounded-lg border border-emerald-200 shadow-sm">
+            <p className="text-xs sm:text-sm text-emerald-800 mb-1 font-medium">Released</p>
+            <p className="text-xl sm:text-2xl text-emerald-700 font-bold">{releasedCount}</p>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Search by serial number, beneficiary, barangay, or lot..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="all">All Types</option>
-            <option value="SPLIT">SPLIT</option>
-            <option value="Regular">Regular</option>
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="all">All Status</option>
-            <option value="on-hand">On-Hand</option>
-            <option value="processing">Processing</option>
-            <option value="released">Released</option>
-          </select>
+          <div className="relative">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none bg-white pr-10 [&::-ms-expand]:hidden"
+            >
+              <option value="all">All Types</option>
+              <option value="SPLIT">SPLIT</option>
+              <option value="Regular">Regular</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none bg-white pr-10 [&::-ms-expand]:hidden"
+            >
+              <option value="all">All Status</option>
+              <option value="on-hand">On-Hand</option>
+              <option value="processing">Processing</option>
+              <option value="released">Released</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+          </div>
           {userRole !== 'VIEWER' && (
             <button
               onClick={handleCreate}
-              className="flex items-center gap-2 px-6 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors shadow-md"
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 text-sm bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors shadow-md whitespace-nowrap"
             >
-              <Plus className="w-5 h-5" />
-              <span>Add Title</span>
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Add Title</span>
+              <span className="sm:hidden">Add</span>
             </button>
           )}
         </div>
 
         {/* Titles Table */}
         {isLoading ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-20 text-center">
-            <div className="animate-spin w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-500 font-medium">Loading title records...</p>
+          <div className="bg-white rounded-lg border border-gray-200 p-12 sm:p-20 text-center">
+            <div className="animate-spin w-8 h-8 sm:w-10 sm:h-10 border-2 sm:border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-3 sm:mb-4"></div>
+            <p className="text-sm sm:text-base text-gray-500 font-medium">Loading title records...</p>
           </div>
         ) : titles.length > 0 ? (
           <>
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden mb-4">
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
-                  <thead className="bg-emerald-50 border-b border-gray-200">
+                <table className="w-full min-w-[800px]">
+                  <thead className="bg-emerald-50 border-b border-gray-200 sticky top-0">
                     <tr>
-                      <th className="w-[15%] px-4 py-3 text-left text-xs font-bold text-gray-600">Serial Number</th>
-                      <th className="w-[15%] px-4 py-3 text-left text-xs font-bold text-gray-600">Type</th>
-                      <th className="w-[15%] px-4 py-3 text-left text-xs font-bold text-gray-600">Beneficiary</th>
-                      <th className="w-[15%] px-4 py-3 text-left text-xs font-bold text-gray-600">Barangay</th>
-                      <th className="w-[10%] px-4 py-3 text-left text-xs font-bold text-gray-600">Lot #</th>
-                      <th className="w-[10%] px-4 py-3 text-left text-xs font-bold text-gray-600">Area</th>
-                      <th className="w-[10%] px-4 py-3 text-left text-xs font-bold text-gray-600">Status</th>
-                      {userRole !== 'VIEWER' && <th className="w-[10%] px-4 py-3 text-right text-xs font-bold text-gray-600">Actions</th>}
+                      <th className="w-[15%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Serial Number</th>
+                      <th className="w-[15%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Type</th>
+                      <th className="w-[15%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Beneficiary</th>
+                      <th className="w-[15%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Barangay</th>
+                      <th className="w-[10%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Lot #</th>
+                      <th className="w-[10%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Area</th>
+                      <th className="w-[10%] px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600">Status</th>
+                      {userRole !== 'VIEWER' && <th className="w-[10%] px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600">Actions</th>}
                     </tr>
                   </thead>
-                </table>
-
-                <div className="max-h-[600px] overflow-y-auto">
+                  <tbody>
                   {titles.map((title, index) => (
-                    <div key={title.id || index} className="border-b border-gray-100 last:border-0">
-                      <table className="w-full table-fixed h-full">
-                        <tbody>
-                          <tr className="hover:bg-emerald-50 transition-colors h-full">
-                            <td className="w-[15%] px-4 py-3 text-sm font-medium truncate">{title.serialNumber}</td>
-                            <td className="w-[15%] px-4 py-3">
-                              <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                title.titleType === 'SPLIT' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                                title.titleType === 'Regular' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                'bg-gray-100 text-gray-800 border border-gray-200'
-                              }`}>
-                                {title.titleType === 'Regular' && title.subtype ? `${title.titleType} (${title.subtype})` : title.titleType}
-                              </span>
-                            </td>
-                            <td className="w-[15%] px-4 py-3 text-sm truncate">{title.beneficiaryName}</td>
-                            <td className="w-[15%] px-4 py-3 text-sm truncate">{title.barangayLocation}</td>
-                            <td className="w-[10%] px-4 py-3 text-sm truncate">{title.lotNumber}</td>
-                            <td className="w-[10%] px-4 py-3 text-sm">{title.area.toFixed(2)}</td>
-                            <td className="w-[10%] px-4 py-3">
-                              <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                title.status === 'Released' || title.status === 'released'
-                                  ? 'bg-emerald-600 text-white shadow-sm'
-                                  : title.status === 'Processed' || title.status === 'processing'
-                                  ? 'bg-amber-500 text-white shadow-sm'
-                                  : title.status === 'on-hand' || title.status === 'Pending'
-                                  ? 'bg-blue-600 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-800 border border-gray-200'
-                              }`}>
-                                {title.status}
-                              </span>
-                            </td>
-                            {userRole !== 'VIEWER' && (
-                              <td className="w-[10%] px-4 py-3 text-right">
-                                <div className="flex gap-2 justify-end">
-                                  <button
-                                    onClick={() => handleEdit(title)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    title="Edit"
-                                  >
-                                    <Edit2 className="w-4 h-4 text-gray-600" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(title.id)}
-                                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                  </button>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+                    <tr key={title.id || index} className="border-b border-gray-100 last:border-0 hover:bg-emerald-50 transition-colors">
+                      <td className="w-[15%] px-3 sm:px-4 py-3 text-sm font-medium truncate">{title.serialNumber}</td>
+                      <td className="w-[15%] px-3 sm:px-4 py-3">
+                        <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          title.titleType === 'SPLIT' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          title.titleType === 'Regular' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                          'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}>
+                          {title.titleType === 'Regular' && title.subtype ? `${title.titleType} (${title.subtype})` : title.titleType}
+                        </span>
+                      </td>
+                      <td className="w-[15%] px-3 sm:px-4 py-3 text-sm truncate">{title.beneficiaryName}</td>
+                      <td className="w-[15%] px-3 sm:px-4 py-3 text-sm truncate">{title.barangayLocation}</td>
+                      <td className="w-[10%] px-3 sm:px-4 py-3 text-sm truncate">{title.lotNumber}</td>
+                      <td className="w-[10%] px-3 sm:px-4 py-3 text-sm">{title.area.toFixed(2)}</td>
+                      <td className="w-[10%] px-3 sm:px-4 py-3">
+                        <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          title.status === 'Released' || title.status === 'released'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : title.status === 'Processed' || title.status === 'processing'
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : title.status === 'on-hand' || title.status === 'Pending'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-800 border border-gray-200'
+                        }`}>
+                          {title.status}
+                        </span>
+                      </td>
+                      {userRole !== 'VIEWER' && (
+                        <td className="w-[10%] px-3 sm:px-4 py-3 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => handleEdit(title)}
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(title.id)}
+                              className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
                   ))}
-                </div>
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between bg-white px-6 py-4 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 bg-white px-4 sm:px-6 py-4 rounded-lg border border-gray-200 shadow-sm">
               {totalRecords > 0 && (
-                <div className="text-sm text-gray-500">
+                <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
                   Showing <span className="font-bold text-gray-900">
                     {Math.min((currentPage - 1) * limit + 1, totalRecords)} - {Math.min(currentPage * limit, totalRecords)}
                   </span> of <span className="font-bold text-gray-900">{totalRecords}</span> records
                 </div>
               )}
               {!totalRecords && (
-                <div className="text-sm text-gray-500">
+                <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
                   Showing <span className="font-bold text-gray-900">0</span> of <span className="font-bold text-gray-900">0</span> records
                 </div>
               )}
@@ -421,17 +421,17 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
                 </button>
-                <div className="flex items-center px-4 text-sm font-bold text-gray-700">
-                  Page {currentPage} of {totalPages}
+                <div className="flex items-center px-2 sm:px-4 text-xs sm:text-sm font-bold text-gray-700">
+                  {currentPage} / {totalPages}
                 </div>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                 </button>
@@ -439,13 +439,13 @@ export function TitlesList({ municipalityId, municipalityName, userRole, onBack 
             </div>
           </>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">No land titles found</p>
+          <div className="bg-white rounded-lg border border-gray-200 p-8 sm:p-12 text-center">
+            <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-sm sm:text-base text-gray-500">No land titles found</p>
             {userRole !== 'VIEWER' && (
               <button
                 onClick={handleCreate}
-                className="mt-4 px-6 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors"
+                className="mt-4 px-4 sm:px-6 py-2 text-sm bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors"
               >
                 Add First Title
               </button>

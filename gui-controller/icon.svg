@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="256" height="256" rx="48" fill="#065f46"/>
+  
+  <!-- House/Building Icon -->
+  <g transform="translate(48, 64)" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <!-- House outline -->
+    <path d="M8 80 L80 20 L152 80 L152 148 C152 152.418 148.418 156 144 156 L16 156 C11.5817 156 8 152.418 8 148 L8 80 Z"/>
+    
+    <!-- Door -->
+    <path d="M64 156 L64 108 C64 103.582 67.5817 100 72 100 L88 100 C92.4183 100 96 103.582 96 108 L96 156" stroke-width="10"/>
+    
+    <!-- Window left -->
+    <rect x="28" y="60" width="24" height="24" rx="4" stroke-width="8"/>
+    
+    <!-- Window right -->
+    <rect x="108" y="60" width="24" height="24" rx="4" stroke-width="8"/>
+  </g>
+  
+  <!-- Server rack indicator at bottom -->
+  <g transform="translate(88, 180)">
+    <rect x="0" y="0" width="16" height="16" rx="4" fill="#10b981"/>
+    <rect x="32" y="0" width="16" height="16" rx="4" fill="#10b981"/>
+    <rect x="64" y="0" width="16" height="16" rx="4" fill="#10b981"/>
+  </g>
+</svg>

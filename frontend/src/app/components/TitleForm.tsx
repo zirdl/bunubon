@@ -117,8 +117,26 @@ export function TitleForm({
       return;
     }
 
-    /* We are not strictly validating Mother CCLOA No. and Title No. as required fields for SPLIT 
-       because legacy data might not have them, but they are available for new entries. 
+    // Date Issued is required for all title types
+    if (!formData.dateIssued) {
+      alert("Date Issued is required");
+      return;
+    }
+
+    // For SPLIT titles, all date fields are required
+    if (formData.titleType === "SPLIT") {
+      if (!formData.dateRegistered) {
+        alert("Date Registered is required for SPLIT titles");
+        return;
+      }
+      if (!formData.dateDistributed) {
+        alert("Date Distributed is required for SPLIT titles");
+        return;
+      }
+    }
+
+    /* We are not strictly validating Mother CCLOA No. and Title No. as required fields for SPLIT
+       because legacy data might not have them, but they are available for new entries.
        If they are strictly required, uncomment the block below. */
     // if (formData.titleType === 'SPLIT' && (!formData.mother_ccloa_no || !formData.title_no)) {
     //   alert('Please fill in Mother CCLOA No. and Title No. for SPLIT title');
@@ -185,13 +203,13 @@ export function TitleForm({
                 maxLength={15}
                 value={formData.serialNumber}
                 onChange={(e) =>
-                  userRole !== "Viewer"
+                  userRole !== "VIEWER"
                     ? setFormData({ ...formData, serialNumber: e.target.value })
                     : undefined
                 }
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                 placeholder="e.g., TCT-123456"
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               />
             </div>
 
@@ -204,12 +222,12 @@ export function TitleForm({
               <button
                 type="button"
                 onClick={() =>
-                  userRole !== "Viewer"
+                  userRole !== "VIEWER"
                     ? setIsDropdownOpen(!isDropdownOpen)
                     : undefined
                 }
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm flex items-center justify-between text-left"
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               >
                 <span
                   className={
@@ -223,7 +241,7 @@ export function TitleForm({
                       : formData.titleType || "Select Type"}
                 </span>
                 <ChevronDown
-                  className={`w-4 h-4 text-gray-500 ${userRole === "Viewer" ? "opacity-50" : ""}`}
+                  className={`w-4 h-4 text-gray-500 ${userRole === "VIEWER" ? "opacity-50" : ""}`}
                 />
               </button>
 
@@ -307,7 +325,7 @@ export function TitleForm({
                     type="text"
                     value={formData.mother_ccloa_no || ""}
                     onChange={(e) =>
-                      userRole !== "Viewer"
+                      userRole !== "VIEWER"
                         ? setFormData({
                             ...formData,
                             mother_ccloa_no: e.target.value,
@@ -316,7 +334,7 @@ export function TitleForm({
                     }
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                     placeholder="Enter Mother CCLOA No."
-                    disabled={userRole === "Viewer"}
+                    disabled={userRole === "VIEWER"}
                   />
                 </div>
                 <div>
@@ -327,13 +345,13 @@ export function TitleForm({
                     type="text"
                     value={formData.title_no || ""}
                     onChange={(e) =>
-                      userRole !== "Viewer"
+                      userRole !== "VIEWER"
                         ? setFormData({ ...formData, title_no: e.target.value })
                         : undefined
                     }
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                     placeholder="Enter Title No."
-                    disabled={userRole === "Viewer"}
+                    disabled={userRole === "VIEWER"}
                   />
                 </div>
               </>
@@ -348,14 +366,14 @@ export function TitleForm({
                 required
                 value={selectedMunicipality}
                 onChange={(e) => {
-                  if (userRole !== "Viewer") {
+                  if (userRole !== "VIEWER") {
                     setSelectedMunicipality(e.target.value);
                     setFormData({ ...formData, barangayLocation: "" }); // Reset barangay on municipality change
                   }
                 }}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm appearance-none"
                 disabled={
-                  !!title || !!defaultMunicipality || userRole === "Viewer"
+                  !!title || !!defaultMunicipality || userRole === "VIEWER"
                 } // Disable if editing existing, default municipality is provided, or user is a viewer
               >
                 {defaultMunicipality ? (
@@ -386,7 +404,7 @@ export function TitleForm({
                 required
                 value={formData.barangayLocation}
                 onChange={(e) =>
-                  userRole !== "Viewer"
+                  userRole !== "VIEWER"
                     ? setFormData({
                         ...formData,
                         barangayLocation: e.target.value,
@@ -394,7 +412,7 @@ export function TitleForm({
                     : undefined
                 }
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm appearance-none"
-                disabled={!selectedMunicipality || userRole === "Viewer"}
+                disabled={!selectedMunicipality || userRole === "VIEWER"}
               >
                 <option value="" disabled>
                   Select Barangay
@@ -418,7 +436,7 @@ export function TitleForm({
                 maxLength={40}
                 value={formData.beneficiaryName}
                 onChange={(e) => {
-                  if (userRole !== "Viewer") {
+                  if (userRole !== "VIEWER") {
                     const value = e.target.value;
                     const capitalValue = value
                       .replace(/[^A-Z\s\-\'\,]/gi, "")
@@ -428,7 +446,7 @@ export function TitleForm({
                 }}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                 placeholder="Enter beneficiary name (CAPITAL LETTERS ONLY)"
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               />
             </div>
 
@@ -443,7 +461,7 @@ export function TitleForm({
                 maxLength={30}
                 value={formData.lotNumber}
                 onChange={(e) => {
-                  if (userRole !== "Viewer") {
+                  if (userRole !== "VIEWER") {
                     const val = e.target.value.toUpperCase();
                     const cleanVal = val.replace(/[^A-Z0-9\-\s]/g, "");
                     setFormData({ ...formData, lotNumber: cleanVal });
@@ -451,7 +469,7 @@ export function TitleForm({
                 }}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                 placeholder="e.g., LOT-123.A"
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               />
             </div>
 
@@ -465,7 +483,7 @@ export function TitleForm({
                 required
                 value={formData.area === 0 ? "" : formData.area}
                 onChange={(e) => {
-                  if (userRole !== "Viewer") {
+                  if (userRole !== "VIEWER") {
                     const val = e.target.value;
 
                     // Use regex to allow only numbers and a single decimal point
@@ -488,7 +506,7 @@ export function TitleForm({
                 }}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                 placeholder="e.g., 1000.00"
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               />
             </div>
 
@@ -498,12 +516,15 @@ export function TitleForm({
                 Status <span className="text-red-500">*</span>
               </label>
               <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 h-[42px]">
-                {["on-hand", "processing", "released"].map((status) => (
+                {(formData.titleType === "SPLIT" 
+                  ? ["on-hand", "released"] 
+                  : ["on-hand", "processing", "released"]
+                ).map((status) => (
                   <button
                     key={status}
                     type="button"
                     onClick={() =>
-                      userRole !== "Viewer"
+                      userRole !== "VIEWER"
                         ? setFormData({ ...formData, status })
                         : undefined
                     }
@@ -516,7 +537,7 @@ export function TitleForm({
                             : "bg-blue-600 text-white shadow-sm"
                         : "text-gray-500 hover:text-gray-700"
                     }`}
-                    disabled={userRole === "Viewer"}
+                    disabled={userRole === "VIEWER"}
                   >
                     {status === "on-hand"
                       ? "On-Hand"
@@ -528,35 +549,38 @@ export function TitleForm({
               </div>
             </div>
 
-            {/* Dates based on Type */}
-            {formData.titleType !== "SPLIT" ? (
-              <div>
-                <label className="block mb-1.5 text-sm font-semibold text-gray-700">
-                  Date Issued
-                </label>
-                <input
-                  type="date"
-                  value={formData.dateIssued}
-                  onChange={(e) =>
-                    userRole !== "Viewer"
-                      ? setFormData({ ...formData, dateIssued: e.target.value })
-                      : undefined
-                  }
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
-                  disabled={userRole === "Viewer"}
-                />
-              </div>
-            ) : (
+            {/* Date Issued (Required for all title types) */}
+            <div>
+              <label className="block mb-1.5 text-sm font-semibold text-gray-700">
+                Date Issued <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={formData.dateIssued}
+                onChange={(e) =>
+                  userRole !== "VIEWER"
+                    ? setFormData({ ...formData, dateIssued: e.target.value })
+                    : undefined
+                }
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
+                disabled={userRole === "VIEWER"}
+              />
+            </div>
+
+            {/* Additional dates for SPLIT titles only */}
+            {formData.titleType === "SPLIT" && (
               <>
                 <div>
                   <label className="block mb-1.5 text-sm font-semibold text-gray-700">
-                    Date Registered
+                    Date Registered <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
+                    required
                     value={formData.dateRegistered || ""}
                     onChange={(e) =>
-                      userRole !== "Viewer"
+                      userRole !== "VIEWER"
                         ? setFormData({
                             ...formData,
                             dateRegistered: e.target.value,
@@ -564,37 +588,19 @@ export function TitleForm({
                         : undefined
                     }
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
-                    disabled={userRole === "Viewer"}
+                    disabled={userRole === "VIEWER"}
                   />
                 </div>
                 <div>
                   <label className="block mb-1.5 text-sm font-semibold text-gray-700">
-                    Date Received
+                    Date Distributed <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
-                    value={formData.dateReceived || ""}
-                    onChange={(e) =>
-                      userRole !== "Viewer"
-                        ? setFormData({
-                            ...formData,
-                            dateReceived: e.target.value,
-                          })
-                        : undefined
-                    }
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
-                    disabled={userRole === "Viewer"}
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1.5 text-sm font-semibold text-gray-700">
-                    Date Distributed
-                  </label>
-                  <input
-                    type="date"
+                    required
                     value={formData.dateDistributed || ""}
                     onChange={(e) =>
-                      userRole !== "Viewer"
+                      userRole !== "VIEWER"
                         ? setFormData({
                             ...formData,
                             dateDistributed: e.target.value,
@@ -602,7 +608,7 @@ export function TitleForm({
                         : undefined
                     }
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
-                    disabled={userRole === "Viewer"}
+                    disabled={userRole === "VIEWER"}
                   />
                 </div>
               </>
@@ -617,14 +623,14 @@ export function TitleForm({
                 value={formData.notes}
                 maxLength={200}
                 onChange={(e) =>
-                  userRole !== "Viewer"
+                  userRole !== "VIEWER"
                     ? setFormData({ ...formData, notes: e.target.value })
                     : undefined
                 }
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all text-sm"
                 rows={3}
                 placeholder="Enter any additional notes..."
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               />
             </div>
           </div>
@@ -642,7 +648,7 @@ export function TitleForm({
                 type="button"
                 onClick={(e) => handleFormSubmit(e, true)}
                 className="px-5 py-2.5 text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-sm"
-                disabled={userRole === "Viewer"}
+                disabled={userRole === "VIEWER"}
               >
                 Save & Add Another
               </button>
@@ -650,7 +656,7 @@ export function TitleForm({
             <button
               type="submit"
               className="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm text-sm"
-              disabled={userRole === "Viewer"}
+              disabled={userRole === "VIEWER"}
             >
               {title ? "Update Record" : "Save Record"}
             </button>

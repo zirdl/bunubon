@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Bunubon LTS Controller</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-container">
+        <div class="logo-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+      </div>
+      <h1>Bunubon LTS</h1>
+      <p class="subtitle">Land Title Tracking System</p>
+      <p class="subsubtitle">Server Controller</p>
+    </div>
+
+    <!-- Server Status Card -->
+    <div class="status-card" id="statusCard">
+      <div class="status-indicator" id="statusIndicator">
+        <div class="status-dot stopped"></div>
+      </div>
+      <div class="status-text">
+        <h2 id="statusText">Server Stopped</h2>
+        <p id="statusSubtext">Click Start to launch the server</p>
+      </div>
+    </div>
+
+    <!-- Uptime Display -->
+    <div class="uptime-card" id="uptimeCard" style="display: none;">
+      <div class="uptime-label">Server Uptime</div>
+      <div class="uptime-value" id="uptimeValue">00:00:00</div>
+    </div>
+
+    <!-- Log Tabs -->
+    <div class="log-tabs">
+      <button class="log-tab active" data-tab="activity">Activity Log</button>
+      <button class="log-tab" data-tab="server">Server Log</button>
+      <button class="log-tab" data-tab="error">Error Log</button>
+    </div>
+
+    <!-- Log Container -->
+    <div class="log-container">
+      <div class="log-header">
+        <span id="logHeaderTitle">Activity Log</span>
+        <div class="log-actions">
+          <button id="clearLogBtn" class="btn-icon-small" title="Clear Log">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          <button id="refreshLogBtn" class="btn-icon-small" title="Refresh Log">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Activity Log -->
+      <div class="log-content active" id="activityLogContent">
+        <div class="log-entry info">
+          <span class="log-time" id="initTime"></span>
+          <span class="log-message">Controller initialized</span>
+        </div>
+      </div>
+      
+      <!-- Server Log -->
+      <div class="log-content" id="serverLogContent">
+        <div class="log-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="12" y1="4" x2="12" y2="4"></line>
+          </svg>
+          <p>Click Refresh to load server logs</p>
+        </div>
+      </div>
+      
+      <!-- Error Log -->
+      <div class="log-content" id="errorLogContent">
+        <div class="log-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <p>Click Refresh to load error logs</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="button-container">
+      <button id="startBtn" class="btn btn-start">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Start Server
+      </button>
+      <button id="stopBtn" class="btn btn-stop" disabled>
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        Stop Server
+      </button>
+    </div>
+
+    <!-- Server Info -->
+    <div class="info-section">
+      <div class="info-item">
+        <span class="info-label">Port:</span>
+        <span class="info-value" id="portValue">5000</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Backend:</span>
+        <span class="info-value">Node.js + Express</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Database:</span>
+        <span class="info-value">SQLite</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>© 2024 DAR - Provincial Office La Union</p>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -7,21 +7,27 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "setup": "node scripts/setup.js",
-    "test": "jest"
+    "cleanup-sessions": "node scripts/cleanup-sessions.js",
+    "test-session": "node scripts/test-session.js",
+    "reset-rate-limit": "node scripts/reset-rate-limit.js",
+    "test": "jest",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
+    "update": "npm update",
+    "outdated": "npm outdated"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "connect-sqlite3": "^0.9.16",
+    "better-sqlite3": "^12.8.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^4.18.2",
-    "express-rate-limit": "^8.2.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.3.2",
     "express-session": "^1.19.0",
     "express-validator": "^7.3.1",
     "googleapis": "^170.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "sqlite3": "^5.1.6",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -35,6 +41,6 @@
     "express",
     "api"
   ],
-  "author": "Your Name",
+  "author": "Department of Agrarian Reform - La Union",
   "license": "MIT"
 }

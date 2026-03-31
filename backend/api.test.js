@@ -9,7 +9,9 @@ jest.mock('./utils/sync');
 describe('API Endpoints', () => {
   describe('GET /api/titles/export', () => {
     it('should return an Excel file', async () => {
-      const response = await request(app).get('/api/titles/export');
+      const response = await request(app)
+        .get('/api/titles/export')
+        .set('x-test-bypass-auth', 'true');
       expect(response.status).toBe(200);
       expect(response.header['content-type']).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       expect(response.header['content-disposition']).toContain('attachment; filename=land_titles.xlsx');
@@ -26,6 +28,7 @@ describe('API Endpoints', () => {
 
       const response = await request(app)
         .post('/api/sync/google-sheets/preview')
+        .set('x-test-bypass-auth', 'true')
         .send({ 
           sheetId: 'test-id', 
           range: 'Sheet1!A1:E10',
@@ -48,6 +51,7 @@ describe('API Endpoints', () => {
 
       const response = await request(app)
         .post('/api/sync/google-sheets/confirm')
+        .set('x-test-bypass-auth', 'true')
         .send({ 
           titles: [{ serialNumber: 'SN001' }]
         });

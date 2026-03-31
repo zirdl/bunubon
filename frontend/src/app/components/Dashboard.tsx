@@ -202,9 +202,9 @@ export function Dashboard({
 
   // Define helper functions before they're used
   const isRegularType = (type: string) =>
-    type === "Regular" || type === "Mother CCLOA" || type === "TCT-EP" || type === "TCT-EP (Legacy)";
+    type === "Regular" || type === "Mother CCLOA" || type === "TCT-EP";
   const isSplitType = (type: string) =>
-    type === "SPLIT" || type === "TCT-CLOA" || type === "TCT-CLOA (Legacy)";
+    type === "SPLIT" || type === "TCT-CLOA";
 
   const filteredTitlesData = titlesData.filter((t) => {
     // Apply title type filter
@@ -340,36 +340,53 @@ export function Dashboard({
 
   return (
     <div className="min-h-screen bg-emerald-50">
-      <main className="w-full max-w-[80%] mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <main className="w-full px-4 py-4 sm:py-8 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Operations Dashboard</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Operations Dashboard</h1>
             <p className="text-sm text-gray-500">Tracking land title inventory and processing flow</p>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-            <Filter className="w-4 h-4 text-emerald-700 ml-2" />
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="bg-transparent px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer">
+
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+            <Filter className="w-4 h-4 text-emerald-700 ml-1 sm:ml-2 flex-shrink-0" />
+            <select 
+              value={filterType} 
+              onChange={(e) => setFilterType(e.target.value)} 
+              className="bg-transparent px-1 sm:px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer max-w-[80px] sm:max-w-none truncate"
+            >
                 <option value="all">All Types</option>
                 <option value="SPLIT">SPLIT</option>
                 <option value="Regular">Regular</option>
             </select>
-            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-            <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="bg-transparent px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer">
+            <div className="h-4 w-px bg-gray-300 mx-1 flex-shrink-0"></div>
+            <select 
+              value={filterYear} 
+              onChange={(e) => setFilterYear(e.target.value)} 
+              className="bg-transparent px-1 sm:px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer max-w-[60px] sm:max-w-none truncate"
+            >
                 <option value="all">Year</option>
                 {availableYears.map(year => <option key={year} value={year}>{year}</option>)}
             </select>
-            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-transparent px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer">
+            <div className="h-4 w-px bg-gray-300 mx-1 flex-shrink-0"></div>
+            <select 
+              value={filterMonth} 
+              onChange={(e) => setFilterMonth(e.target.value)} 
+              className="bg-transparent px-1 sm:px-2 py-1 text-xs font-semibold text-gray-700 focus:outline-none cursor-pointer max-w-[60px] sm:max-w-none truncate"
+            >
                 <option value="all">Month</option>
                 {[...Array(12)].map((_, i) => <option key={i} value={i}>{new Date(0, i).toLocaleString('default', { month: 'short' })}</option>)}
             </select>
-            <button onClick={resetFilters} className="ml-2 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-md hover:bg-emerald-100 transition-colors">Reset</button>
+            <button 
+              onClick={resetFilters} 
+              className="ml-1 sm:ml-2 px-2 sm:px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-md hover:bg-emerald-100 transition-colors whitespace-nowrap"
+            >
+              Reset
+            </button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><FileText className="w-6 h-6" /></div>
@@ -400,14 +417,14 @@ export function Dashboard({
               <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-1 rounded">Coverage</span>
             </div>
             <p className="text-sm font-medium text-gray-500">Total Area (ha)</p>
-            <p className="text-3xl font-bold text-gray-900">{(totalAreaDistributed / 10000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</p>
+            <p className="text-3xl font-bold text-gray-900">{(totalAreaDistributed / 10000).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
           </div>
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-6 sm:mb-8">
+          <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-emerald-700" />
                 <h2 className="text-lg font-bold text-gray-900">Municipality Inventory & Backlog</h2>

@@ -14,6 +14,7 @@ const ExportData = lazy(() => import('./components/ExportData').then(module => (
 const BackupRestore = lazy(() => import('./components/BackupRestore').then(module => ({ default: module.BackupRestore })));
 const TitlesList = lazy(() => import('./components/TitlesList').then(module => ({ default: module.TitlesList })));
 const UserProfile = lazy(() => import('./components/UserProfile').then(module => ({ default: module.UserProfile })));
+const HelpPage = lazy(() => import('./components/HelpPage').then(module => ({ default: module.HelpPage })));
 import { ForcePasswordChange } from './components/ForcePasswordChange';
 
 const API_BASE_URL = '/api';
@@ -38,12 +39,37 @@ export default function App() {
           setRole(user.role);
           setMustChangePassword(user.mustChangePassword);
           setIsAuthenticated(true);
+        } else if (response.status === 401) {
+          // Session expired or invalid - clear stored data
+          console.log('Session expired or invalid, clearing stored credentials');
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('currentRole');
+          
+          // If we're not on the login page, redirect there
+          if (window.location.pathname !== '/login') {
+            navigate('/login');
+          }
+        } else if (response.status === 429) {
+          // Rate limited - this shouldn't happen for /profile in development
+          console.error('Rate limited during session check. This is a bug.');
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('currentRole');
         } else {
+          // Other errors - only log if not a first-load 401
+          if (response.status !== 401 || isAuthenticated) {
+            console.error('Session check failed with status:', response.status);
+          }
           localStorage.removeItem('currentUser');
           localStorage.removeItem('currentRole');
         }
       } catch (err) {
-        console.error('Session check failed:', err);
+        // Network error or server down - clear stored data
+        // Only log if user was previously authenticated
+        if (isAuthenticated) {
+          console.error('Session check failed:', err);
+        }
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('currentRole');
       } finally {
         setIsLoading(false);
       }
@@ -64,6 +90,36 @@ export default function App() {
 
       const data = await response.json();
 
+      if (!response.ok) {
+        // Handle rate limiting (429)
+        if (response.status === 429) {
+          const retryAfter = data.retryAfter ? new Date(data.retryAfter).toLocaleTimeString() : 'a few minutes';
+          return { 
+            success: false, 
+            message: `Too many login attempts. Please wait until ${retryAfter} or contact support.` 
+          };
+        }
+        // Handle HTTP error status codes
+        if (response.status === 403) {
+          return { 
+            success: false, 
+            message: data.message || 'Your account has been deactivated. Contact an administrator.' 
+          };
+        }
+        if (response.status === 400) {
+          return { 
+            success: false, 
+            message: data.message || 'Invalid request. Please try again.' 
+          };
+        }
+        if (response.status === 500) {
+          return { 
+            success: false, 
+            message: 'Server error. Please try again later or contact support.' 
+          };
+        }
+      }
+
       if (data.success) {
         setUsername(username);
         setRole(data.user.role);
@@ -73,11 +129,14 @@ export default function App() {
         localStorage.setItem('currentRole', data.user.role);
         return { success: true };
       } else {
-        return { success: false, message: data.message || 'Login failed' };
+        return { success: false, message: data.message || 'Login failed. Please check your credentials.' };
       }
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, message: 'Network error' };
+      return { 
+        success: false, 
+        message: 'Unable to connect to the server. Please ensure the backend is running and try again.' 
+      };
     }
   };
 
@@ -152,6 +211,7 @@ interface AuthenticatedLayoutProps {
 
 function AuthenticatedLayout({ username, userRole, onLogout, sidebarCollapsed, setSidebarCollapsed }: AuthenticatedLayoutProps) {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleViewTitles = (municipalityId: string, municipalityName: string) => {
     navigate(`/titles/${municipalityId}`);
@@ -159,19 +219,53 @@ function AuthenticatedLayout({ username, userRole, onLogout, sidebarCollapsed, s
 
   return (
     <div className="flex min-h-screen bg-emerald-50">
-      <Sidebar
-        onCollapse={setSidebarCollapsed}
-        userRole={userRole}
-      />
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar - hidden on mobile, shown on md+ screens */}
+      {/* Mobile: Slide-in menu */}
+      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:hidden ${
+        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <Sidebar
+          onCollapse={setSidebarCollapsed}
+          userRole={userRole}
+        />
+      </div>
+      
+      {/* Desktop: Static sidebar that pushes content */}
+      <div className="hidden md:block">
+        <Sidebar
+          onCollapse={setSidebarCollapsed}
+          userRole={userRole}
+        />
+      </div>
+      
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-emerald-700 text-white shadow-lg sticky top-0 z-20">
-          <div className="max-w-[95%] mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md overflow-hidden">
+        <header className="bg-emerald-700 text-white shadow-lg sticky top-0 z-30">
+          <div className="max-w-[95%] mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 hover:bg-emerald-600 rounded-lg transition-colors"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center shadow-md overflow-hidden flex-shrink-0">
                 <img
                   src="/dar-logo.png"
                   alt="DAR Logo"
-                  className="w-8 h-8 object-contain"
+                  className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
                 />
               </div>
               <div>
@@ -236,6 +330,9 @@ function AuthenticatedLayout({ username, userRole, onLogout, sidebarCollapsed, s
               } />
               <Route path="/profile" element={
                 <UserProfile />
+              } />
+              <Route path="/help" element={
+                <HelpPage userRole={userRole} />
               } />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
